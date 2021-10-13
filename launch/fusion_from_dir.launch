@@ -1,0 +1,143 @@
+<launch>
+    <arg name="data_root" default="/home/leevi/DATA/panoptic-3d/scene0000_00_full"/>
+    <arg name="results_name" default="$(arg data_root)/sc0000_test"/>
+
+    <param name="/results_name" value="$(arg results_name)"/>
+
+    <arg name="data_format"      default="scannet"/>
+    <arg name="publish_rate"     default="0"/>
+    <arg name="publish_interval" default="10"/>
+    <arg name="reduction_rate"   default="0.5"/>
+
+    <arg name="bond_id" default="-1"/>
+
+    <arg name="integrator_type"  default="fast"/>
+
+    <arg name="visualise_global_ids" default="true"/>
+    <arg name="max_samples"          default="1000"/>
+    <arg name="outlier_rejection"    default="false"/>
+    <arg name="confidence_threshold" default="0.45"/>
+    <arg name="iou_threshold"        default="0.25"/>
+    <arg name="likelihood_metric"    default="iou"/>
+    <arg name="voxel_weighting"      default="constant"/>
+    <arg name="dbscan_min_points"    default="10"/>
+    <arg name="dbscan_epsilon"       default="1.5"/>
+
+    <param name="/data_publisher/data_root"        value="$(arg data_root)"/>
+    <param name="/data_publisher/data_format"      value="$(arg data_format)"/>
+    <param name="/data_publisher/publish_rate"     value="$(arg publish_rate)"/>
+    <param name="/data_publisher/publish_interval" value="$(arg publish_interval)"/>
+    <param name="/data_publisher/reduction_rate"   value="$(arg reduction_rate)"/>
+
+    <param name="/data_publisher/bond_id"   value="$(arg bond_id)"/>
+
+    <node name="cloud_publisher_node"
+          pkg="panoptic-3d"
+          type="cloud_publisher_node.py"
+          output="screen"
+          launch-prefix="bash -c 'sleep 5; $0 $@'"
+          required="false">
+    </node>
+
+    <node pkg="nodelet" type="nodelet" name="pc_nodelet_manager" args="manager" required="true"/>
+
+    <node pkg="nodelet" type="nodelet" name="metric_rect"
+        args="load depth_image_proc/convert_metric pc_nodelet_manager" required="true">
+        <remap from="image_raw" to="/camera/depth/img_rect"/>
+        <remap from="image" to="/camera/depth/img_rect_m"/>
+    </node>
+
+    <node pkg="nodelet" type="nodelet" name="transform_scenedepth2rgb"
+    args="load depth_image_proc/register pc_nodelet_manager" required="true">
+
+        <remap from="rgb/camera_info" to="/camera/rgb/camera_info"/>
+        <remap from="depth/camera_info" to="/camera/depth/camera_info"/>
+        <remap from="depth/image_rect" to="/camera/depth/img_rect_m"/>
+
+        <remap from="depth_registered/camera_info" to="/camera/depth/camera_info_reg"/>
+        <remap from="depth_registered/image_rect" to="/camera/depth/img_reg"/>
+    </node>
+
+    <!--
+    <node pkg="nodelet" type="nodelet" name="nodelet1"
+          args="load depth_image_proc/point_cloud_xyz nodelet_manager"
+          launch-prefix="bash -c 'sleep 5; $0 $@'">
+      <remap from="camera_info" to="/camera/depth/camera_info"/>
+      <remap from="image_rect" to="/camera/depth/img_rect_m"/>
+      <remap from="points" to="/camera/xyz_pointcloud"/>
+    </node>
+    -->
+
+    <node pkg="nodelet" type="nodelet" name="points_xyzrgb" args="load depth_image_proc/point_cloud_xyzrgb pc_nodelet_manager">
+        <remap from="rgb/camera_info" to="/camera/rgb/camera_info"/>
+        <remap from="rgb/image_rect_color" to="/camera/rgb/img_rect"/>
+        <remap from="depth_registered/image_rect" to="/camera/depth/img_reg"/>
+        <remap from="depth_registered/points" to="/camera/xyz_rgb_pointcloud"/>
+    </node>
+
+    <node pkg="nodelet" type="nodelet" name="points_xyz_panopt" args="load depth_image_proc/point_cloud_xyzrgb pc_nodelet_manager" required="true">
+        <remap from="rgb/camera_info" to="/camera/rgb/camera_info"/>
+        <remap from="rgb/image_rect_color" to="/camera/label/enc_rect"/>
+        <remap from="depth_registered/image_rect" to="/camera/depth/img_reg"/>
+        <remap from="depth_registered/points" to="/camera/xyz_panopt_pointcloud"/>
+    </node>
+
+    <node name="voxblox_fusion_node"
+          pkg="panoptic-3d"
+          type="tsdf_fusion"
+          output="screen"
+          args="-alsologtostderr"
+          clear_params="true"
+          required="true"
+          launch-prefix="">
+         <!-- gdb -ex run args -->
+        <!-- launch-prefix="valgrind track-origins=yes log-file=/home/leevi/catkin-ws/vlg.log" -->
+
+        <!-- Pointcloud ROS topic -->
+        <remap from="pointcloud" to="/camera/xyz_panopt_pointcloud"/>
+
+        <!-- Mesher parameters -->
+        <param name="tsdf_voxel_size"         value="0.024" />
+        <param name="truncation_distance"     value="0.096" />
+        <param name="color_mode"              value="color" />
+        <param name="enable_icp"              value="false" />
+        <param name="icp_refine_roll_pitch"   value="false" />
+        <param name="update_mesh_every_n_sec" value="0.333" />
+        <param name="mesh_min_weight"         value="1e-4" />
+        <param name="method"                  value="$(arg integrator_type)" />
+        <param name="max_ray_length_m"        value="8.0" />
+        <param name="use_const_weight"        value="false" />
+        <param name="verbose"                 value="true" />
+        <param name="voxel_carving_enabled"   value="true"/>
+
+        <param name="max_consecutive_ray_collisions" value="1" />
+
+        <param name="output_mesh_as_pcl_mesh" value="false" />
+        <param name="publish_pointclouds" value="false"/>
+
+        <!-- Result paths -->
+        <param name="mesh_filename" value="$(arg results_name).ply" />
+        <param name="labels_filename" value="$(arg results_name)" />
+
+        <!-- Transforms from map to camera -->
+        <param name="use_tf_transforms" value="true" />
+        <param name="world_frame"       value="world"/>
+        <param name="sensor_frame"      value="camera"/>
+
+        <param name="visualise_global_ids" value="$(arg visualise_global_ids)"/>
+        <param name="max_samples"          value="$(arg max_samples)"/>
+        <param name="outlier_rejection"    value="$(arg outlier_rejection)"/>
+        <param name="confidence_threshold" value="$(arg confidence_threshold)"/>
+        <param name="iou_threshold"        value="$(arg iou_threshold)"/>
+        <param name="likelihood_metric"    value="$(arg likelihood_metric)"/>
+        <param name="voxel_weighting"      value="$(arg voxel_weighting)"/>
+        <param name="dbscan_min_points"    value="$(arg dbscan_min_points)"/>
+        <param name="dbscan_epsilon"       value="$(arg dbscan_epsilon)"/>
+    </node>
+
+    <arg name="rviz_cfg" default="$(find panoptic-3d)/launch/fusion.rviz" />
+
+    <!-- Visualization RVIZ -->
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg rviz_cfg)" launch-prefix=""/>
+
+</launch>
