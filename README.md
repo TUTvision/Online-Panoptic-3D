@@ -1,7 +1,7 @@
 # Online Panoptic 3D Reconstruction
 
 
-![](https://user-images.githubusercontent.com/35113270/137158685-e6ef1483-9861-4646-92e6-f5ece93a0aa6.mp4)
+https://user-images.githubusercontent.com/35113270/137158685-e6ef1483-9861-4646-92e6-f5ece93a0aa6.mp4
 
 
 Panoptic segmentation model:
