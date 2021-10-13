@@ -45,7 +45,7 @@ git submodule update --init --recursive
 2. Build the ROS package
 ```
 cd ~/catkin_ws
-catkin build Online-Panoptic-3D
+catkin build online-panoptic-3d
 ```
 
 ## How to run
