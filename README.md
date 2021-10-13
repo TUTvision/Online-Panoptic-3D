@@ -62,12 +62,12 @@ Currently, input data has to be read from disk, however in the future we plan to
 
 ### Input data
 
-Currently we only support data saved a directory in a specific format. With some work, however, one could design their own input pipeline to match our panoptic point cloud format.
+Currently we only support data saved in a directory in a specific format. With some work, however, one could design their own input pipeline to match our panoptic point cloud format.
 
 See our panoptic segmentation model's documentation on how to process ScanNet scenes to this format: [ScanNet-EfficientPS](https://github.com/TUTvision/ScanNet-EfficientPS)
 
 Panoptic segmentations are encoded as 8-bit RGB point clouds:
-- First channel (R) contains the confidence score of the points estimated class as a 8-bit unsigned integer: scores in the [0, 1] range are binned to integers in [0, 255] range
+- First color channel (R) contains the confidence score of the points estimated class as a 8-bit unsigned integer: scores in the [0, 1] range are binned to integers in [0, 255] range
 - Second channel (G) contains the estimated class of the point in [0, 255] range
 - Third channel (B) contains the estimated panoptic instance in [0, 255] range
 
@@ -90,7 +90,7 @@ scan_root
 
 ### Parameters
 
-Voxblox's parameters work as explained in their documentation, and can be given as an input to our package:
+Voxblox's parameters work as explained in their documentation, and can be given as an input to our reconstruction node:
 [https://voxblox.readthedocs.io/en/latest/pages/The-Voxblox-Node.html](https://voxblox.readthedocs.io/en/latest/pages/The-Voxblox-Node.html)
 
 Subscribed ROS topics:
