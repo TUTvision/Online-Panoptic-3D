@@ -15,7 +15,7 @@ Panoptic segmentation model:
 0. Install ROS Melodic, initialise catkin workspace and build Voxblox-ROS
 ```
 # install ROS
-# follow instructions in http://wiki.ros.org/melodic/Installation/Ubuntu
+# follow the instructions in http://wiki.ros.org/melodic/Installation/Ubuntu
 # we recommend the desktop-full version, otherwise you will need to install some additional packages 
 # (if compilation of Voxblox or this package fails, cmake will tell you what's missing)
 
@@ -23,7 +23,7 @@ Panoptic segmentation model:
 mkdir -p ~/catkin_ws/src
 cd ~/catkin_ws
 catkin init
-catkin config --extend /opt/ros/kinetic
+catkin config --extend /opt/ros/moledic
 catkin config --cmake-args -DCMAKE_BUILD_TYPE=Release
 catkin config --merge-devel
 
