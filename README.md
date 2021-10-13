@@ -16,7 +16,8 @@ Panoptic segmentation model:
 ```
 # install ROS
 # follow instructions in http://wiki.ros.org/melodic/Installation/Ubuntu
-# we recommend the desktop-full version, otherwise you will need to install some additional packages (if build of Voxblox or this package fails, cmake will tell you what's missing)
+# we recommend the desktop-full version, otherwise you will need to install some additional packages 
+# (if compilation of Voxblox or this package fails, cmake will tell you what's missing)
 
 # initialise catkin
 mkdir -p ~/catkin_ws/src
