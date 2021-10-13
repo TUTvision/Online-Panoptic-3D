@@ -34,6 +34,7 @@ catkin build voxblox_ros
 ```
 1. Clone repository to catkin workspace
 ```
+cd ~/catkin_ws/src/
 git clone git@github.com:TUTvision/Online-Panoptic-3D.git
 ```
 2. Update submodules (dlib)
@@ -43,6 +44,7 @@ git submodule update --init --recursive
 ```
 2. Build the ROS package
 ```
+cd ~/catkin_ws
 catkin build Online-Panoptic-3D
 ```
 
