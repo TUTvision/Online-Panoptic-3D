@@ -1,17 +1,17 @@
 <launch>
 
     <!-- Data publisher parameters -->
-    <arg name="data_root" default="/home/leevi/Documents/3d-panoptic/data/scene0000_00_full"/>
+    <arg name="data_root" default="/home/leevi/DATA/panoptic-3d//scene0000_00_full"/>
     <arg name="data_format"      default="scannet"/>
     <arg name="publish_rate"     default="0"/>
     <arg name="publish_interval" default="10"/>
-    <arg name="reduction_rate"   default="0.1"/>
+    <arg name="reduction_rate"   default="0.5"/>
 
     <!-- Voxblox parameters -->
-    <arg name="integrator_type"     default="merged"/>
-    <arg name="voxel_size"          default="0.05"/>
-    <arg name="truncation_distance" default="0.15"/>
-    <arg name="update_mesh_every_n_sec" default="1"/>
+    <arg name="integrator_type"     default="fast"/>
+    <arg name="voxel_size"          default="0.024"/>
+    <arg name="truncation_distance" default="0.096"/>
+    <arg name="update_mesh_every_n_sec" default="0.1"/>
     <arg name="max_ray_length_m"        default="8"/>
     <arg name="voxel_carving_enabled"   default="true"/>
     <arg name="max_consecutive_ray_collisions"  default="1"/>
@@ -23,11 +23,11 @@
     <arg name="use_local_reference"       default="true"/>
     <arg name="likelihood_metric"     default="iou"/>
     <arg name="confidence_threshold"  default="0.45"/>
-    <arg name="association_threshold" default="0.5"/>
+    <arg name="association_threshold" default="0.25"/>
     <arg name="weighting_strategy"    default="tsdf"/>
 
     <!-- Outlier rejection parameters -->
-    <arg name="perform_outlier_rejection" default="false"/>
+    <arg name="perform_outlier_rejection" default="true"/>
     <arg name="outlier_rejection_method"  default="dbscan"/>
     <arg name="outlier_threshold"  default="6.2514"/>
     <arg name="cluster_min_points" default="10"/>
@@ -39,7 +39,7 @@
     <arg name="max_samples" default="1000"/>
 
     <!-- Output parameters -->
-    <arg name="output_name" default="$(arg data_root)/sc0000_test"/>
+    <arg name="output_name" default="$(arg data_root)/sc0000_test3"/>
     <arg name="visualise_global_ids" default="true"/>
 
     <!-- RViz config -->

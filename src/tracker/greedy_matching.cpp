@@ -1,4 +1,3 @@
-
 /* raiviol 8/2021
 */
 
@@ -10,18 +9,12 @@ namespace fusion
 Greedy_LAP::Greedy_LAP(
     unsigned int min_id,
     bool use_local_reference,
-    double new_target_likelihood,
-    std::string likelihood_metric,
-    std::shared_ptr<VoxelMap> reference_map )
+    double association_threshold,
+    std::string likelihood_metric)
     : Object_Tracker_Base(min_id, use_local_reference),
-      new_target_likelihood_(new_target_likelihood),
-      likelihood_metric_(likelihood_metric),
-      reference_map_(reference_map)
+      association_threshold_(association_threshold),
+      likelihood_metric_(likelihood_metric)
 {
-    if( likelihood_metric == "iou" && !reference_map)
-    {
-        throw std::invalid_argument("IoU computation requires reference voxel map.");
-    }
     if( likelihood_metric != "iou" )
     {
         throw std::invalid_argument("Greedy matching is currently only implemented for IoU");
@@ -82,16 +75,13 @@ std::shared_ptr<AssociationVector> Greedy_LAP::process_measurements(
             }
         }
 
-        if( a.likelihood <= new_target_likelihood_)
+        if( a.likelihood <= association_threshold_)
         {
             a.target_id = generate_new_id();
-            //a.likelihood = new_target_likelihood_;
         }
 
         assignments->push_back(a);
     }
-
-    // TODO: fuse distributions if too much overlap?
 
     return assignments;
 }

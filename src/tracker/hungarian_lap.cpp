@@ -1,4 +1,3 @@
-
 /* raiviol 8/2021
 */
 
@@ -11,19 +10,13 @@ H_LAP::H_LAP(
     unsigned int min_id,
     bool use_local_reference,
     bool normalise_likelihoods,
-    double new_target_likelihood,
-    std::string likelihood_metric,
-    std::shared_ptr<VoxelMap> reference_map )
+    double association_threshold,
+    std::string likelihood_metric)
     : Object_Tracker_Base(min_id, use_local_reference),
       normalise_likelihoods_(normalise_likelihoods),
-      new_target_likelihood_(new_target_likelihood),
-      likelihood_metric_(likelihood_metric),
-      reference_map_(reference_map)
+      association_threshold_(association_threshold),
+      likelihood_metric_(likelihood_metric)
 {
-    if( likelihood_metric_ == "iou" && !reference_map)
-    {
-        throw std::invalid_argument("IoU computation requires reference voxel map.");
-    }
 }
 
 std::shared_ptr<AssociationVector> H_LAP::process_measurements(
@@ -94,15 +87,14 @@ std::shared_ptr<AssociationVector> H_LAP::process_measurements(
 
     Common::join_threads(threads);
 
-    double norm = 1;
-
-    double threshold = (new_target_likelihood_ > 0)
-        ? new_target_likelihood_ : 1/(double)measurements.size();
+    double threshold = association_threshold_;
 
     dlib::matrix<int> int_likelihood_mat = dlib::zeros_matrix<int>(n,n);
 
     if( normalise_likelihoods_ )
     {
+        threshold /= (double)measurements.size();
+
         std::vector<double> sums(n, 0);
 
         for( unsigned int i = 0 ; i < n ; ++i )
@@ -119,8 +111,6 @@ std::shared_ptr<AssociationVector> H_LAP::process_measurements(
                 likelihood_mat(i,j) = (sums[i] > 0) ? likelihood_mat(i,j) / sums[i] : 0;
             }
         }
-
-        threshold = new_target_likelihood_/(double)measurements.size();
     }
 
     for( unsigned int i = 0 ; i < n ; ++i )
@@ -152,26 +142,19 @@ std::shared_ptr<AssociationVector> H_LAP::process_measurements(
         if( likelihood > threshold )
         {
             a.target_id = target_ids[assigned_target_idx];
-            ROS_INFO("OLD TARGET: %d", a.target_id);
         }
         else
         {
             a.target_id = generate_new_id();
-            ROS_INFO("NEW TARGET: %d", a.target_id);
         }
 
         a.likelihood = likelihood;
 
         assignments->push_back(a);
 
-        ROS_INFO("  Measurement: %d", a.measurement_id);
-        ROS_INFO("  Likelihood: %f", likelihood);
-        ROS_INFO("  Threshold: %f", threshold);
-
         ++measurement_idx;
     }
 
-    // TODO: fuse distributions if too much overlap?
     return assignments;
 }
 
@@ -202,17 +185,6 @@ void H_LAP::likelihood_matrix_callback(
     }
     else
     {
-        /*
-        VoxelSet target_points = target->points;
-
-        if( local_voxels->size() > 0 )
-        {
-            target_points.clear();
-
-            // edits target_points in-place to only contain local voxels
-            double u = in_place_union(target->points, *local_voxels, target_points);
-        }
-        */
         likelihood = intersection_over_union(
             measurement->points,
             target->points
@@ -224,11 +196,6 @@ void H_LAP::likelihood_matrix_callback(
     {
         if( normalise_likelihoods_ )
         {
-            // linear
-            //likelihood = -distance;
-
-            // the further an object is, the more uniform likelihood it has to others
-            // add small number to not divide by zero, otherwise normalisation might fail
             likelihood = 1 / (distance + 1e-10);
         }
         else
@@ -237,9 +204,6 @@ void H_LAP::likelihood_matrix_callback(
             likelihood = 1 / (1 + distance);
         }
     }
-
-    //ROS_INFO("Pre-Likelihood: %f", likelihood);
-
     likelihood_matrix(measurement_index, target_index) = likelihood;
 }
 
