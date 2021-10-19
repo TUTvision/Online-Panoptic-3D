@@ -30,48 +30,24 @@ Greedy_LAP::Greedy_LAP(
 
 std::shared_ptr<AssociationVector> Greedy_LAP::process_measurements(
     ObjectMap& measurements,
-    std::shared_ptr<IdSet> local_reference,
+    ObjectMap& local_targets,
     std::shared_ptr<VoxelSet> local_voxels)
 {
-    update_map();
-
     IdVector measurement_ids;
-    IdVector targets;
+    IdVector target_ids;
 
     for( auto m : measurements )
     {
         measurement_ids.push_back(m.first);
     }
 
-    std::sort(measurement_ids.begin(), measurement_ids.end(),
-        [&measurements](unsigned int a, unsigned int b)
-        {
-            return measurements[a]->points.size() > measurements[b]->points.size();
-        }
-    );
-
-    if( local_reference )
+    if( local_targets.size() > 0 )
     {
-        targets.reserve(local_reference->size());
+        target_ids.reserve(local_targets.size());
 
-        for( unsigned int id : *local_reference )
+        for( auto id_object_pair : local_targets )
         {
-            if( map_.count(id) > 0 )
-            {
-                targets.push_back(id);
-            }
-        }
-    }
-    else
-    {
-        for( auto pair : map_ )
-        {
-            // avoid mapping stuff id's
-            unsigned int id = pair.first;
-            if( id >= min_id_)
-            {
-                targets.push_back(pair.first);
-            }
+            target_ids.push_back(id_object_pair.first);
         }
     }
 
@@ -92,19 +68,11 @@ std::shared_ptr<AssociationVector> Greedy_LAP::process_measurements(
         a.measurement_id = measurement_id;
         a.likelihood = 0;
 
-        for( auto target_id : targets )
+        for( auto target_id : target_ids )
         {
-            VoxelSet target_points = map_[target_id]->points;
-
-            if( local_voxels && local_voxels->size() > 0 )
-            {
-                // edits target_points in-place to only contain local voxels
-                double u = in_place_union(map_[target_id]->points, *local_voxels, target_points);
-            }
-
             double iou = intersection_over_union(
                 measurements[measurement_id]->points,
-                target_points
+                local_targets[target_id]->points
             );
 
             if( iou > a.likelihood )
@@ -126,64 +94,6 @@ std::shared_ptr<AssociationVector> Greedy_LAP::process_measurements(
     // TODO: fuse distributions if too much overlap?
 
     return assignments;
-}
-
-void Greedy_LAP::update_map()
-{
-    // when likelihood is computed as IoU, a reference map is used in order to
-    // avoid overlapping targets
-
-    std::unordered_set<unsigned int> cleared_ids;
-
-    for( auto pair : *reference_map_ )
-    {
-        auto voxel = pair.first;
-        auto id = pair.second.first;
-        auto weight = pair.second.second;
-
-        if( map_.count(id) == 0)
-        {
-            //std::shared_ptr<Object_struct> init =
-            map_[id] = std::make_shared<Object_struct>();
-        }
-
-        // Clear voxels to avoid overlaps. Reference_map can also have only
-        // recently updated id's, therefore this should be performed inside
-        // the loop to not affect id's in map not found in the reference.
-        else if( cleared_ids.count(id) == 0 )
-        {
-            map_[id]->points.clear();
-            map_[id]->weights.clear();
-            cleared_ids.insert(id);
-        }
-
-        map_[id]->points.insert(voxel);
-        map_[id]->weights[voxel] = weight;
-    }
-}
-
-void Greedy_LAP::update_map(
-    ObjectMap& measurements,
-    std::shared_ptr<AssociationVector> assignments)
-{
-    for( auto a : *assignments )
-    {
-        if( map_.count(a.target_id) == 0 )
-        {
-            auto init = std::make_shared<Object_struct>();
-            init->distribution.init(
-                measurements[a.measurement_id]->points.begin(),
-                measurements[a.measurement_id]->points.end());
-
-            map_[a.target_id] = init;
-        }
-        else
-        {
-            map_[a.target_id]->distribution.update(
-                measurements[a.measurement_id]->points.begin(),
-                measurements[a.measurement_id]->points.end());
-        }
-    }
 }
 
 } // namespace fusion

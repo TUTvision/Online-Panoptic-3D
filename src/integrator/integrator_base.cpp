@@ -11,12 +11,12 @@ TsdfIntegratorBase::TsdfIntegratorBase(
     fusion::Config& fusion_config,
     ros::Publisher confirm_pub)
         : voxblox::TsdfIntegratorBase(config, layer),
-          confirm_pub_(confirm_pub)
+          tracker_(PanopticTracker(fusion_config)),
+          confirm_pub_(confirm_pub),
+          voxel_weighting_(fusion_config.weighting_strategy),
+          confidence_threshold_(fusion_config.confidence_threshold),
+          save_timings_(fusion_config.save_timings)
 {
-    voxel_weighting_      = fusion_config.voxel_weighting;
-    confidence_threshold_ = fusion_config.confidence_threshold;
-
-    tracker_ = PanopticTracker(fusion_config, voxel_size_);
 }
 
 bool TsdfIntegratorBase::saveSegmentationCallback()
@@ -106,7 +106,7 @@ void TsdfIntegratorBase::update_voxels()
 
     for( unsigned int i = 0 ; i < n_threads_ ; ++i )
     {
-        if( index + partition < n_voxels && i < n_threads_ - 1  )
+        if( index + partition < n_voxels && i < n_threads_-1 )
         {
             std::advance(last, partition);
             index += partition;
@@ -125,19 +125,6 @@ void TsdfIntegratorBase::update_voxels()
 
         first = last;
     }
-
-    /*
-    //for(auto global_voxel_id : tracker_.updated_voxels )
-    for(auto global_voxel_idx : updated_voxels_ )
-    {
-        threads.push_back(
-            std::thread(
-                &TsdfIntegratorBase::update_voxels_callback, this,
-                global_voxel_idx
-            )
-        );
-    }
-    */
 
     for( std::thread& t : threads )
     {

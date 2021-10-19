@@ -42,8 +42,8 @@ protected:
     unsigned int n_threads_ = 8;
 
     PanopticTracker tracker_;
-    std::string voxel_weighting_ = "tsdf";
-    double confidence_threshold_ = 0.5;
+    std::string voxel_weighting_;
+    double confidence_threshold_;
     VoxelSet updated_voxels_;
 
     std::mutex tracker_update_mtx_;
@@ -72,7 +72,7 @@ protected:
         voxblox::TsdfVoxel* tsdf_voxel
     );
 
-    bool save_timings_ = true;
+    bool save_timings_;
     std::vector<double> fusion_timings_;
 
     void save_time(std::chrono::duration<double> tdiff, std::vector<double>& vec);

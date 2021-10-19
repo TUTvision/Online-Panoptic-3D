@@ -28,54 +28,33 @@ H_LAP::H_LAP(
 
 std::shared_ptr<AssociationVector> H_LAP::process_measurements(
     ObjectMap& measurements,
-    std::shared_ptr<IdSet> local_reference,
+    ObjectMap& local_targets,
     std::shared_ptr<VoxelSet> local_voxels)
 {
-    if( likelihood_metric_ == "iou")
-    {
-        update_map();
-    }
-
     IdVector measurement_ids;
-    IdVector targets;
+    IdVector target_ids;
 
     for( auto m : measurements )
     {
         measurement_ids.push_back(m.first);
     }
 
-    if( local_reference && local_reference->size() > 0 )
+    if( local_targets.size() > 0 )
     {
-        targets.reserve(local_reference->size());
+        target_ids.reserve(local_targets.size());
 
-        for( unsigned int id : *local_reference )
+        for( auto id_object_pair : local_targets )
         {
-            if( map_.count(id) > 0 )
-            {
-                targets.push_back(id);
-            }
-        }
-        //targets.insert(targets.end(), local_reference->begin(), local_reference->end());
-    }
-    else
-    {
-        for( auto pair : map_ )
-        {
-            // avoid mapping stuff id's
-            unsigned int id = pair.first;
-            if( id >= min_id_)
-            {
-                targets.push_back(pair.first);
-            }
+            target_ids.push_back(id_object_pair.first);
         }
     }
 
-    unsigned int n = ( measurement_ids.size() > targets.size() ) ?
-        measurement_ids.size() : targets.size();
+    const unsigned int n = ( measurement_ids.size() > target_ids.size() ) ?
+        measurement_ids.size() : target_ids.size();
 
     auto assignments = std::make_shared<AssociationVector>();
 
-    if( targets.size() < 1 )
+    if( n < 1 )
     {
         return assignments;
     }
@@ -92,7 +71,7 @@ std::shared_ptr<AssociationVector> H_LAP::process_measurements(
     {
         unsigned int col_idx = 0;
 
-        for( auto target_id : targets )
+        for( auto target_id : target_ids )
         {
             if( measurements[measurement_id]->points.size() > 0 )
             {
@@ -100,7 +79,7 @@ std::shared_ptr<AssociationVector> H_LAP::process_measurements(
                     std::thread(
                         &H_LAP::likelihood_matrix_callback, this,
                         measurements[measurement_id],
-                        map_[target_id],
+                        local_targets[target_id],
                         local_voxels,
                         row_idx,
                         col_idx,
@@ -116,29 +95,38 @@ std::shared_ptr<AssociationVector> H_LAP::process_measurements(
     Common::join_threads(threads);
 
     double norm = 1;
-    double threshold = 1/(double)n;//targets.size();// new_target_likelihood_;
+
+    double threshold = (new_target_likelihood_ > 0)
+        ? new_target_likelihood_ : 1/(double)measurements.size();
+
+    dlib::matrix<int> int_likelihood_mat = dlib::zeros_matrix<int>(n,n);
 
     if( normalise_likelihoods_ )
     {
-        // likelihoods lie in [0, max]
-        // divide by max -> range is [0, 1]
+        std::vector<double> sums(n, 0);
 
-        norm = dlib::sum(likelihood_mat);// + new_target_likelihood_;
-        likelihood_mat = (likelihood_mat - dlib::min(likelihood_mat)) / norm;
-        //threshold = norm;
+        for( unsigned int i = 0 ; i < n ; ++i )
+        {
+            for( unsigned int j = 0 ; j < n ; ++j )
+            {
+                sums[i] += likelihood_mat(i,j);
+            }
+        }
+        for( unsigned int i = 0 ; i < n ; ++i )
+        {
+            for( unsigned int j = 0 ; j < n ; ++j )
+            {
+                likelihood_mat(i,j) = (sums[i] > 0) ? likelihood_mat(i,j) / sums[i] : 0;
+            }
+        }
+
+        threshold = new_target_likelihood_/(double)measurements.size();
     }
-
-    dlib::matrix<int> int_likelihood_mat = dlib::zeros_matrix<int>(n,n);
 
     for( unsigned int i = 0 ; i < n ; ++i )
     {
         for( unsigned int j = 0 ; j < n ; ++j )
         {
-            if( likelihood_mat(i,j) > 0 )
-            {
-                //ROS_INFO("Likelihood: %f", likelihood_mat(i,j));
-            }
-
             int_likelihood_mat(i,j) =
                 quantise_double_likelihood(likelihood_mat(i,j), n_bins_);
         }
@@ -163,28 +151,27 @@ std::shared_ptr<AssociationVector> H_LAP::process_measurements(
 
         if( likelihood > threshold )
         {
-            a.target_id = targets[assigned_target_idx];
+            a.target_id = target_ids[assigned_target_idx];
+            ROS_INFO("OLD TARGET: %d", a.target_id);
         }
         else
         {
             a.target_id = generate_new_id();
-            likelihood = threshold;
+            ROS_INFO("NEW TARGET: %d", a.target_id);
         }
 
         a.likelihood = likelihood;
 
         assignments->push_back(a);
 
+        ROS_INFO("  Measurement: %d", a.measurement_id);
+        ROS_INFO("  Likelihood: %f", likelihood);
+        ROS_INFO("  Threshold: %f", threshold);
+
         ++measurement_idx;
     }
 
-    if( likelihood_metric_ != "iou" )
-    {
-        update_map(measurements, assignments);
-    }
-
     // TODO: fuse distributions if too much overlap?
-
     return assignments;
 }
 
@@ -215,17 +202,20 @@ void H_LAP::likelihood_matrix_callback(
     }
     else
     {
+        /*
         VoxelSet target_points = target->points;
 
-        if( local_voxels && local_voxels->size() > 0 )
+        if( local_voxels->size() > 0 )
         {
+            target_points.clear();
+
             // edits target_points in-place to only contain local voxels
             double u = in_place_union(target->points, *local_voxels, target_points);
         }
-
+        */
         likelihood = intersection_over_union(
             measurement->points,
-            target_points
+            target->points
         );
     }
 
@@ -248,65 +238,9 @@ void H_LAP::likelihood_matrix_callback(
         }
     }
 
+    //ROS_INFO("Pre-Likelihood: %f", likelihood);
+
     likelihood_matrix(measurement_index, target_index) = likelihood;
-}
-
-void H_LAP::update_map()
-{
-    // when likelihood is computed as IoU, a reference map is used in order to
-    // avoid overlapping targets
-
-    std::unordered_set<unsigned int> cleared_ids;
-
-    for( auto pair : *reference_map_ )
-    {
-        auto voxel = pair.first;
-        auto id = pair.second.first;
-        auto weight = pair.second.second;
-
-        if( map_.count(id) == 0)
-        {
-            //std::shared_ptr<Object_struct> init =
-            map_[id] = std::make_shared<Object_struct>();
-        }
-
-        // Clear voxels to avoid overlaps. Reference_map can also have only
-        // recently updated id's, therefore this should be performed inside
-        // the loop to not affect id's in map not found in the reference.
-        else if( cleared_ids.count(id) == 0 )
-        {
-            map_[id]->points.clear();
-            map_[id]->weights.clear();
-            cleared_ids.insert(id);
-        }
-
-        map_[id]->points.insert(voxel);
-        map_[id]->weights[voxel] = weight;
-    }
-}
-
-void H_LAP::update_map(
-    ObjectMap& measurements,
-    std::shared_ptr<AssociationVector> assignments)
-{
-    for( auto a : *assignments )
-    {
-        if( map_.count(a.target_id) == 0 )
-        {
-            auto init = std::make_shared<Object_struct>();
-            init->distribution.init(
-                measurements[a.measurement_id]->points.begin(),
-                measurements[a.measurement_id]->points.end());
-
-            map_[a.target_id] = init;
-        }
-        else
-        {
-            map_[a.target_id]->distribution.update(
-                measurements[a.measurement_id]->points.begin(),
-                measurements[a.measurement_id]->points.end());
-        }
-    }
 }
 
 } // namespace fusion

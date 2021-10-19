@@ -29,8 +29,8 @@ public:
 
     std::shared_ptr<AssociationVector> process_measurements(
         ObjectMap& measurements,
-        std::shared_ptr<IdSet> local_reference = nullptr,
-        std::shared_ptr<VoxelSet> local_voxels = nullptr
+        ObjectMap& local_targets,
+        std::shared_ptr<VoxelSet> local_voxels
     ) override;
 
 protected:

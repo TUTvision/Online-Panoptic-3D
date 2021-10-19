@@ -1,39 +1,60 @@
 <launch>
-    <arg name="data_root" default="/home/leevi/DATA/panoptic-3d/scene0000_00_full"/>
-    <arg name="results_name" default="$(arg data_root)/sc0000_test"/>
 
-    <param name="/results_name" value="$(arg results_name)"/>
-
+    <!-- Data publisher parameters -->
+    <arg name="data_root" default="/home/leevi/Documents/3d-panoptic/data/scene0000_00_full"/>
     <arg name="data_format"      default="scannet"/>
     <arg name="publish_rate"     default="0"/>
     <arg name="publish_interval" default="10"/>
-    <arg name="reduction_rate"   default="0.5"/>
+    <arg name="reduction_rate"   default="0.1"/>
 
-    <arg name="bond_id" default="-1"/>
+    <!-- Voxblox parameters -->
+    <arg name="integrator_type"     default="merged"/>
+    <arg name="voxel_size"          default="0.05"/>
+    <arg name="truncation_distance" default="0.15"/>
+    <arg name="update_mesh_every_n_sec" default="1"/>
+    <arg name="max_ray_length_m"        default="8"/>
+    <arg name="voxel_carving_enabled"   default="true"/>
+    <arg name="max_consecutive_ray_collisions"  default="1"/>
 
-    <arg name="integrator_type"  default="fast"/>
+    <!-- Tracker parameters-->
+    <arg name="tracker_type"     default="hungarian"/>
+    <arg name="normalise_likelihoods"     default="true"/>
+    <arg name="only_process_local_voxels" default="true"/>
+    <arg name="use_local_reference"       default="true"/>
+    <arg name="likelihood_metric"     default="iou"/>
+    <arg name="confidence_threshold"  default="0.45"/>
+    <arg name="association_threshold" default="0.5"/>
+    <arg name="weighting_strategy"    default="tsdf"/>
 
+    <!-- Outlier rejection parameters -->
+    <arg name="perform_outlier_rejection" default="false"/>
+    <arg name="outlier_rejection_method"  default="dbscan"/>
+    <arg name="outlier_threshold"  default="6.2514"/>
+    <arg name="cluster_min_points" default="10"/>
+    <arg name="dbscan_epsilon"     default="1.5"/>
+
+    <!-- Data processing parameters -->
+    <arg name="infer_distribution"  default="false"/>
+    <arg name="sample_measurements" default="false"/>
+    <arg name="max_samples" default="1000"/>
+
+    <!-- Output parameters -->
+    <arg name="output_name" default="$(arg data_root)/sc0000_test"/>
     <arg name="visualise_global_ids" default="true"/>
-    <arg name="max_samples"          default="1000"/>
-    <arg name="outlier_rejection"    default="false"/>
-    <arg name="confidence_threshold" default="0.45"/>
-    <arg name="iou_threshold"        default="0.25"/>
-    <arg name="likelihood_metric"    default="iou"/>
-    <arg name="voxel_weighting"      default="constant"/>
-    <arg name="dbscan_min_points"    default="10"/>
-    <arg name="dbscan_epsilon"       default="1.5"/>
+
+    <!-- RViz config -->
+    <arg name="rviz_cfg" default="$(find online-panoptic-3d)/launch/fusion.rviz" />
 
     <param name="/data_publisher/data_root"        value="$(arg data_root)"/>
     <param name="/data_publisher/data_format"      value="$(arg data_format)"/>
     <param name="/data_publisher/publish_rate"     value="$(arg publish_rate)"/>
     <param name="/data_publisher/publish_interval" value="$(arg publish_interval)"/>
     <param name="/data_publisher/reduction_rate"   value="$(arg reduction_rate)"/>
+    <param name="/results_name" value="$(arg output_name)"/>
 
-    <param name="/data_publisher/bond_id"   value="$(arg bond_id)"/>
-
-    <node name="cloud_publisher_node"
-          pkg="panoptic-3d"
-          type="cloud_publisher_node.py"
+    <node name="data_publisher_node"
+          pkg="online-panoptic-3d"
+          type="data_publisher_node.py"
           output="screen"
           launch-prefix="bash -c 'sleep 5; $0 $@'"
           required="false">
@@ -83,59 +104,67 @@
     </node>
 
     <node name="voxblox_fusion_node"
-          pkg="panoptic-3d"
+          pkg="online-panoptic-3d"
           type="tsdf_fusion"
           output="screen"
           args="-alsologtostderr"
           clear_params="true"
           required="true"
           launch-prefix="">
-         <!-- gdb -ex run args -->
-        <!-- launch-prefix="valgrind track-origins=yes log-file=/home/leevi/catkin-ws/vlg.log" -->
 
         <!-- Pointcloud ROS topic -->
         <remap from="pointcloud" to="/camera/xyz_panopt_pointcloud"/>
 
         <!-- Mesher parameters -->
-        <param name="tsdf_voxel_size"         value="0.024" />
-        <param name="truncation_distance"     value="0.096" />
+        <param name="tsdf_voxel_size"         value="$(arg voxel_size)" />
+        <param name="truncation_distance"     value="$(arg truncation_distance)" />
         <param name="color_mode"              value="color" />
         <param name="enable_icp"              value="false" />
         <param name="icp_refine_roll_pitch"   value="false" />
-        <param name="update_mesh_every_n_sec" value="0.333" />
+        <param name="update_mesh_every_n_sec" value="$(arg update_mesh_every_n_sec)" />
         <param name="mesh_min_weight"         value="1e-4" />
         <param name="method"                  value="$(arg integrator_type)" />
-        <param name="max_ray_length_m"        value="8.0" />
+        <param name="max_ray_length_m"        value="$(arg max_ray_length_m)" />
         <param name="use_const_weight"        value="false" />
         <param name="verbose"                 value="true" />
-        <param name="voxel_carving_enabled"   value="true"/>
-
-        <param name="max_consecutive_ray_collisions" value="1" />
+        <param name="voxel_carving_enabled"   value="$(arg voxel_carving_enabled)"/>
+        <param name="max_consecutive_ray_collisions" value="$(arg max_consecutive_ray_collisions)" />
 
         <param name="output_mesh_as_pcl_mesh" value="false" />
-        <param name="publish_pointclouds" value="false"/>
+        <param name="publish_pointclouds"     value="false"/>
 
-        <!-- Result paths -->
-        <param name="mesh_filename" value="$(arg results_name).ply" />
-        <param name="labels_filename" value="$(arg results_name)" />
+        <!-- Tracker parameters -->
+        <param name="tracker_type"              value="$(arg tracker_type)" />
+        <param name="normalise_likelihoods"     value="$(arg normalise_likelihoods)" />
+        <param name="only_process_local_voxels" value="$(arg only_process_local_voxels)" />
+        <param name="use_local_reference"       value="$(arg use_local_reference)" />
+        <param name="likelihood_metric"         value="$(arg likelihood_metric)"/>
+        <param name="confidence_threshold"      value="$(arg confidence_threshold)"/>
+        <param name="association_threshold"     value="$(arg association_threshold)"/>
+        <param name="weighting_strategy"        value="$(arg weighting_strategy)"/>
+
+        <!-- Outlier rejection parameters -->
+        <param name="perform_outlier_rejection" value="$(arg perform_outlier_rejection)"/>
+        <param name="outlier_rejection_method"  value="$(arg outlier_rejection_method)"/>
+        <param name="outlier_threshold"         value="$(arg outlier_threshold)"/>
+        <param name="cluster_min_points" value="$(arg cluster_min_points)"/>
+        <param name="dbscan_epsilon"     value="$(arg dbscan_epsilon)"/>
+
+        <!-- Data processing parameters -->
+        <param name="infer_distribution"  value="$(arg infer_distribution)"/>
+        <param name="sample_measurements" value="$(arg sample_measurements )"/>
+        <param name="max_samples"         value="$(arg max_samples)"/>
+
+        <!-- Output parameters -->
+        <param name="output_name"          value="$(arg output_name)" />
+        <param name="mesh_filename"        value="$(arg output_name).ply" />
+        <param name="visualise_global_ids" value="$(arg visualise_global_ids)"/>
 
         <!-- Transforms from map to camera -->
         <param name="use_tf_transforms" value="true" />
         <param name="world_frame"       value="world"/>
         <param name="sensor_frame"      value="camera"/>
-
-        <param name="visualise_global_ids" value="$(arg visualise_global_ids)"/>
-        <param name="max_samples"          value="$(arg max_samples)"/>
-        <param name="outlier_rejection"    value="$(arg outlier_rejection)"/>
-        <param name="confidence_threshold" value="$(arg confidence_threshold)"/>
-        <param name="iou_threshold"        value="$(arg iou_threshold)"/>
-        <param name="likelihood_metric"    value="$(arg likelihood_metric)"/>
-        <param name="voxel_weighting"      value="$(arg voxel_weighting)"/>
-        <param name="dbscan_min_points"    value="$(arg dbscan_min_points)"/>
-        <param name="dbscan_epsilon"       value="$(arg dbscan_epsilon)"/>
     </node>
-
-    <arg name="rviz_cfg" default="$(find panoptic-3d)/launch/fusion.rviz" />
 
     <!-- Visualization RVIZ -->
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg rviz_cfg)" launch-prefix=""/>

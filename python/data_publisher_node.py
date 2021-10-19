@@ -84,7 +84,7 @@ def loader_callback(data, args):
     except:
         rospy.logwarn("ERROR IN PUBLISH CALLBACK")
 
-def run_node(path, rate, interval, format, reduction_rate, bond_id):
+def run_node(path, rate, interval, format, reduction_rate):
     rgb_shape = (968, 1296)
     depth_shape = (480, 640)
     world_frame_id = "world"
@@ -101,14 +101,7 @@ def run_node(path, rate, interval, format, reduction_rate, bond_id):
     else:
         raise ROSInterruptException("Data format {} not recognised".format(format))
 
-    publisher = CloudPublisher(path, rgb_shape, depth_shape, reduction_rate, world_frame_id, camera_frame_id)
-
-    id = str(bond_id)
-    bond = bondpy.Bond("publisher_bond", id)
-
-    if bond_id > 0:
-        rospy.loginfo("Start bond "+id)
-        bond.start()
+    publisher = DataPublisher(path, rgb_shape, depth_shape, reduction_rate, world_frame_id, camera_frame_id)
 
     rospy.loginfo("Data root: {}".format(str(path)))
 
@@ -137,10 +130,6 @@ def run_node(path, rate, interval, format, reduction_rate, bond_id):
     service_call = rospy.ServiceProxy('/voxblox_fusion_node/save_segmentation', Empty)
     resp = service_call()
 
-    if bond_id > 0:
-        rospy.loginfo("Break bond "+id)
-        bond.break_bond()
-
 if __name__ == '__main__':
 
     path = Path(rospy.get_param("/data_publisher/data_root"))
@@ -148,7 +137,6 @@ if __name__ == '__main__':
     rate = float(rospy.get_param("/data_publisher/publish_rate", 1))
     interval = int(rospy.get_param("/data_publisher/publish_interval", 1))
     reduction_rate = float(rospy.get_param("/data_publisher/reduction_rate", 1))
-    bond_id = int(rospy.get_param("/data_publisher/bond_id", -1))
 
     confirm_pub = rospy.Publisher("/fusion_complete_confirm", Bool, queue_size=1)
 
@@ -163,7 +151,7 @@ if __name__ == '__main__':
         # avoid rewriting results, can also be used to continue from
         # last unprocessed scene if inference script crashes
         if not result_file.exists():
-            run_node(path, rate, interval, format, reduction_rate, bond_id)
+            run_node(path, rate, interval, format, reduction_rate)
 
         bmsg.data = True
 

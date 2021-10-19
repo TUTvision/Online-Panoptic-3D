@@ -31,48 +31,7 @@ public:
         const TsdfIntegratorBase::Config& integrator_config =
             voxblox::getTsdfIntegratorConfigFromRosParam(nh_private);
 
-        fusion::Config fusion_config;
-
-        nh_private_.param(
-            "labels_filename",
-            fusion_config.labels_filename,
-            fusion_config.labels_filename);
-        nh_private_.param(
-            "visualise_global_ids",
-            fusion_config.visualise_global_ids,
-            fusion_config.visualise_global_ids);
-        nh_private_.param(
-            "max_samples",
-            fusion_config.max_samples,
-            fusion_config.max_samples);
-        nh_private_.param(
-            "outlier_rejection",
-            fusion_config.outlier_rejection,
-            fusion_config.outlier_rejection);
-        nh_private_.param(
-            "confidence_threshold",
-            fusion_config.confidence_threshold,
-            fusion_config.confidence_threshold);
-        nh_private_.param(
-            "iou_threshold",
-            fusion_config.iou_threshold,
-            fusion_config.iou_threshold);
-        nh_private_.param(
-            "likelihood_metric",
-            fusion_config.likelihood_metric,
-            fusion_config.likelihood_metric);
-        nh_private_.param(
-            "voxel_weighting",
-            fusion_config.voxel_weighting,
-            fusion_config.voxel_weighting);
-        nh_private_.param(
-            "dbscan_min_points",
-            fusion_config.dbscan_min_points,
-            fusion_config.dbscan_min_points);
-        nh_private_.param(
-            "dbscan_epsilon",
-            fusion_config.dbscan_epsilon,
-            fusion_config.dbscan_epsilon);
+        fusion::Config fusion_config = parse_config(nh_private);
 
         std::string method("merged");
         nh_private_.param("method", method, method);
@@ -113,6 +72,96 @@ public:
 protected:
     ros::ServiceServer save_segmentation_srv_;
 
+    fusion::Config parse_config(const ros::NodeHandle& nh_private)
+    {
+        fusion::Config config;
+
+        nh_private_.param(
+            "tracker_type",
+            config.tracker_type,
+            config.tracker_type);
+        nh_private_.param(
+            "normalise_likelihoods",
+            config.normalise_likelihoods,
+            config.normalise_likelihoods);
+        nh_private_.param(
+            "only_process_local_voxels",
+            config.only_process_local_voxels,
+            config.only_process_local_voxels);
+        nh_private_.param(
+            "tracker_type",
+            config.use_local_reference,
+            config.use_local_reference);
+        nh_private_.param(
+            "likelihood_metric",
+            config.likelihood_metric,
+            config.likelihood_metric);
+        nh_private_.param(
+            "confidence_threshold",
+            config.confidence_threshold,
+            config.confidence_threshold);
+        nh_private_.param(
+            "association_threshold",
+            config.association_threshold,
+            config.association_threshold);
+        nh_private_.param(
+            "weighting_strategy",
+            config.weighting_strategy,
+            config.weighting_strategy);
+
+        nh_private_.param(
+            "perform_outlier_rejection",
+            config.perform_outlier_rejection,
+            config.perform_outlier_rejection);
+        nh_private_.param(
+            "outlier_rejection_method",
+            config.outlier_rejection_method,
+            config.outlier_rejection_method);
+        nh_private_.param(
+            "outlier_threshold",
+            config.outlier_threshold,
+            config.outlier_threshold);
+        nh_private_.param(
+            "cluster_min_points",
+            config.cluster_min_points,
+            config.cluster_min_points);
+        nh_private_.param(
+            "dbscan_epsilon",
+            config.dbscan_epsilon,
+            config.dbscan_epsilon);
+
+        nh_private_.param(
+            "infer_distribution",
+            config.infer_distribution,
+            config.infer_distribution);
+        nh_private_.param(
+            "sample_measurements",
+            config.sample_measurements,
+            config.sample_measurements);
+        nh_private_.param(
+            "max_samples",
+            config.max_samples,
+            config.max_samples);
+
+        nh_private_.param(
+            "output_name",
+            config.output_name,
+            config.output_name);
+        nh_private_.param(
+            "save_timings",
+            config.save_timings,
+            config.save_timings);
+        nh_private_.param(
+            "visualise_global_ids",
+            config.visualise_global_ids,
+            config.visualise_global_ids);
+        nh_private_.param(
+            "tsdf_voxel_size",
+            config.voxel_size,
+            config.voxel_size);
+
+        return config;
+    }
 }; // class TsdfServer
 } // namespace fusion
 

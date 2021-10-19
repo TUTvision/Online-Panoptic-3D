@@ -9,25 +9,33 @@
 namespace fusion
 {
     struct Config {
+         /* tracker */
+        std::string tracker_type       = "h_lap"; //"greedy";
+        bool normalise_likelihoods     = true;
+        bool only_process_local_voxels = true;
+        bool use_local_reference       = true;
+        std::string likelihood_metric  = "iou";
+        double confidence_threshold    = 0.5;
+        double association_threshold   = 0;
+        std::string weighting_strategy = "tsdf";
 
-        std::string labels_filename = "3d_panoptic";
+        /* outlier rejection */
+        bool perform_outlier_rejection       = false;
+        std::string outlier_rejection_method = "dbscan"; //"gaussian";
+        double outlier_threshold             = 6.2514;   // 90% quantile
+        double cluster_min_points            = 10;
+        double dbscan_epsilon                = 1.5;
+
+        /* data procesing */
+        bool infer_distribution  = false;
+        bool sample_measurements = false;
+        double max_samples       = 1000;
+
+        /* output */
+        std::string output_name   = "3d_panoptic";
+        bool save_timings         = true;
         bool visualise_global_ids = true;
-
-        std::string voxel_weighting = "constant";
-
-        int max_samples = 1000;
-        bool outlier_rejection = true;
-
-        std::string likelihood_metric = "iou";
-        double confidence_threshold = 0.5;
-        double iou_threshold = 0.2;
-
-        // minimum number of points (voxel centers) considered as a cluster
-        double dbscan_min_points = 10;
-
-        // voxels are in a normalised grid, perpendicular distances are 1
-        // -> if we want to allow diagonal neighbors, epsilon sohuld be over sqrt(2)
-        double dbscan_epsilon = 1.5;
+        double voxel_size;
     };
 }; // end namespace fusion
 

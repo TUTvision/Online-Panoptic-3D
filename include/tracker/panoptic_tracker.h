@@ -39,7 +39,7 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     PanopticTracker();
-    PanopticTracker(const fusion::Config& fusion_config, double voxel_size);
+    PanopticTracker(const fusion::Config& fusion_config);
     ~PanopticTracker(){};
 
     std::shared_ptr<IdMap> ids;
@@ -58,42 +58,6 @@ public:
     bool save_segmentation(double fusion_av = -1);
 
 protected:
-
-    ObjectMap measurements_;
-    std::shared_ptr<VoxelSet> local_voxels_;
-
-    bool only_process_local_voxels_ = true;
-
-    std::string tracker_type_ = "h_lap";//"greedy";
-    std::shared_ptr<Object_Tracker_Base> tracker_;
-
-    bool visualise_global_ids_ = true;
-    bool use_local_reference_ = true;
-
-    std::string voxel_weighting_ = "tsdf";
-    bool add_weights_ = true;
-
-    bool infer_distribution_ = false;
-    bool sample_measurements_ = false;
-
-    unsigned int max_samples_ = 1000;
-    bool perform_outlier_rejection_ = true;
-    bool normalise_likelihoods_ = false;
-
-    std::string likelihood_metric_ = "iou";
-    double confidence_threshold_ = 0.5;
-    double association_threshold_ = 0.5;
-
-    double voxel_size_;
-
-    std::string outlier_rejection_method_ = "gaussian";//"dbscan";
-    double outlier_threshold_ = 6.2514; // 90% quantile
-
-    unsigned int min_points_ = 10;
-    double dbscan_epsilon_ = 1.5;
-    DBSCAN clustering_;
-
-    std::string txt_output_name_;
 
     void process_stuff_measurement(
         const unsigned int id,
@@ -134,10 +98,17 @@ protected:
     void save_time(std::chrono::duration<double> tdiff, std::vector<double>& vec);
     double get_avg_time(std::vector<double>& times);
 
-    bool save_timings_ = true;
+    ObjectMap measurements_;
+    std::shared_ptr<VoxelSet> local_voxels_;
+
+    std::shared_ptr<Object_Tracker_Base> tracker_;
+    DBSCAN clustering_;
+
     std::vector<double> tracking_times_;
     std::vector<double> preprocess_times_;
     std::vector<double> association_times_;
+
+    fusion::Config config_;
 
 }; // class PanopticTracker
 } // namespace fusion

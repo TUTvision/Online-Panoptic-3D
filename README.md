@@ -14,7 +14,7 @@ Panoptic segmentation model:
 ```
 # install ROS
 # follow the instructions in http://wiki.ros.org/melodic/Installation/Ubuntu
-# we recommend the desktop-full version, otherwise you will need to install some additional packages 
+# we recommend the desktop-full version, otherwise you will need to install some additional packages
 # (if compilation of Voxblox or this package fails, cmake will tell you what's missing)
 
 # initialise catkin
@@ -98,7 +98,8 @@ Published ROS topics:
 Parameters to the data publisher node:
 
 Parameters to the reconstruction node:
-
+association_threshold:
+- if 0, threshold = 1/n
 
 ### Run for a single scan
 

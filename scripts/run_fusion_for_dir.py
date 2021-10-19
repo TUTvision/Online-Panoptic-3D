@@ -7,8 +7,6 @@ import roslaunch
 import rospy
 from std_msgs.msg import Bool
 
-from bondpy import bondpy
-
 class confirm_callback():
     def __init__(self):
         self.fusion_done = False
@@ -43,25 +41,11 @@ def main(source_dir, launch_file):
 
     for i, d in enumerate(scenes):
 
-        '''
-        id += 1
-        bond = bondpy.Bond("publisher_bond", str(id))
-        bond.start()
-        '''
-
         rospy.init_node('run_fusion', anonymous=True)
         uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
         roslaunch.configure_logging(uuid)
 
-        '''
-        launch = roslaunch.parent.ROSLaunchParent(uuid, [launch_file])
-        '''
-
         data_arg = 'data_root:='+str(d.resolve())
-
-        '''
-        bond_arg = 'bond_id:='+str(id)
-        '''
 
         cli_args = [launch_file, data_arg]#, bond_arg]
         roslaunch_args = cli_args[1:]
@@ -71,14 +55,6 @@ def main(source_dir, launch_file):
 
         launch.start()
         rospy.loginfo(f"Fusion of {d.name} started")
-
-        '''
-        if not bond.wait_until_formed(rospy.Duration(60.0)):
-            raise Exception('Bond could not be formed with publisher node')
-
-        bond.wait_until_broken()
-        rospy.loginfo(f"{d.name} : bond broken")
-        '''
 
         while not confirm_listener.fusion_done:
             rospy.sleep(1)

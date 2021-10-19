@@ -7,47 +7,40 @@
 namespace fusion
 {
 PanopticTracker::PanopticTracker()
-    : PanopticTracker(fusion::Config(), 0.1)
+    : PanopticTracker(fusion::Config())
 {
 }
-PanopticTracker::PanopticTracker(
-    const fusion::Config& fusion_config,
-    double voxel_size)
-    : voxel_size_(voxel_size),
-    txt_output_name_(fusion_config.labels_filename),
-    visualise_global_ids_(fusion_config.visualise_global_ids),
-    confidence_threshold_(fusion_config.confidence_threshold),
-    association_threshold_(fusion_config.iou_threshold),
-    likelihood_metric_(fusion_config.likelihood_metric),
-    voxel_weighting_(fusion_config.voxel_weighting),
-    max_samples_(fusion_config.max_samples),
-    perform_outlier_rejection_(fusion_config.outlier_rejection)
+PanopticTracker::PanopticTracker(const fusion::Config& fusion_config)
+    : config_(fusion_config)
 {
     ids = std::make_shared<IdMap>();
     map = std::make_shared<VoxelMap>();
     local_voxels_ = std::make_shared<VoxelSet>();
 
-    min_points_ = fusion_config.dbscan_min_points;
-    dbscan_epsilon_ = fusion_config.dbscan_epsilon;
-
-    if( perform_outlier_rejection_ && outlier_rejection_method_ == "dbscan" )
+    if( config_.perform_outlier_rejection && config_.outlier_rejection_method == "dbscan" )
     {
-        clustering_ = DBSCAN(min_points_, dbscan_epsilon_);
+        clustering_ = DBSCAN(config_.cluster_min_points, config_.dbscan_epsilon);
     }
 
-    if( fusion_config.likelihood_metric != "iou" )
+    // distribution-based metrics require a gaussian distribution
+    if( config_.likelihood_metric != "iou" )
     {
-        infer_distribution_ = true;
+        config_.infer_distribution = true;
     }
 
-    if( tracker_type_ == "greedy" )
+    if( config_.association_threshold > 0 )
+    {
+        config_.normalise_likelihoods = true;
+    }
+
+    if( config_.tracker_type == "greedy" )
     {
         tracker_.reset(
             new Greedy_LAP(
                 N_STUFF_CLASSES,
-                true,
-                fusion_config.iou_threshold,
-                fusion_config.likelihood_metric,
+                config_.normalise_likelihoods,
+                config_.association_threshold,
+                config_.likelihood_metric,
                 map)
         );
         tracker_ = std::dynamic_pointer_cast<Greedy_LAP>(tracker_);
@@ -57,10 +50,10 @@ PanopticTracker::PanopticTracker(
         tracker_.reset(
             new H_LAP(
                 N_STUFF_CLASSES,
-                true,
-                true,
-                fusion_config.iou_threshold,
-                fusion_config.likelihood_metric,
+                config_.use_local_reference,
+                config_.normalise_likelihoods,
+                config_.association_threshold,
+                config_.likelihood_metric,
                 map)
         );
         tracker_ = std::dynamic_pointer_cast<H_LAP>(tracker_);
@@ -88,7 +81,7 @@ void PanopticTracker::add_measurement(
         process_dynamic_measurement(id, category,  point, weight);
     }
 
-    if( only_process_local_voxels_ )
+    if( config_.only_process_local_voxels )
     {
         local_voxels_->insert(point);
     }
@@ -104,7 +97,7 @@ void PanopticTracker::update_map()
     auto t1 = high_resolution_clock::now();
     auto t1_total = t1;
 
-    if( perform_outlier_rejection_ )
+    if( config_.perform_outlier_rejection )
     {
         std::vector<std::thread> outlier_rejection_threads;
 
@@ -121,7 +114,7 @@ void PanopticTracker::update_map()
         Common::join_threads(outlier_rejection_threads);
     }
 
-    if( sample_measurements_ || infer_distribution_ )
+    if( config_.sample_measurements || config_.infer_distribution )
     {
         std::vector<std::thread> sampling_threads;
 
@@ -148,19 +141,25 @@ void PanopticTracker::update_map()
 
     //std::vector<std::thread> fusion_threads;
 
-    std::shared_ptr<IdSet> local_reference = nullptr;
+    ObjectMap local_reference;
 
-    if( use_local_reference_ )
+    if( config_.use_local_reference )
     {
-        local_reference = std::make_shared<IdSet>();
-
-        for( auto m : measurements_ )
+        for( auto p : *local_voxels_ )
         {
-            for( auto p : m.second->points )
+            if( map->count(p) > 0 )
             {
-                if( map->count(p) > 0 )
+                unsigned int id = (*map)[p].first;
+
+                if( !Common::val_found_in_id_arr(id, STUFF_CLASS_IDX, N_STUFF_CLASSES) )
                 {
-                    local_reference->insert((*map)[p].first);
+                    auto target_struct_it = local_reference.find(id);
+                    if( target_struct_it == local_reference.end() )
+                    {
+                        auto init_struct = std::make_shared<Object_struct>();
+                        local_reference[id] = init_struct;
+                    }
+                    local_reference[id]->points.insert(p);
                 }
             }
         }
@@ -216,8 +215,8 @@ bool PanopticTracker::save_segmentation(double fusion_av)
     std::ofstream output_fs;
     std::ofstream colormap_fs;
 
-    std::string txt_output_file = txt_output_name_ + ".txt";
-    std::string color_map_file  = txt_output_name_ + "_color_map.txt";
+    std::string txt_output_file = config_.output_name + ".txt";
+    std::string color_map_file  = config_.output_name + "_color_map.txt";
 
     output_fs.open(txt_output_file);
     colormap_fs.open(color_map_file);
@@ -230,7 +229,7 @@ bool PanopticTracker::save_segmentation(double fusion_av)
         {
             Voxel voxel = vx.first;
             unsigned int id = vx.second.first;
-            unsigned int category = (*ids)[id]->get_category(confidence_threshold_);
+            unsigned int category = (*ids)[id]->get_category(config_.confidence_threshold);
             double confidence = (*ids)[id]->confidence;
 
             std::string id_str  = std::to_string(id);
@@ -265,7 +264,7 @@ bool PanopticTracker::save_segmentation(double fusion_av)
             }
 
             voxblox::Point voxel_center =
-                voxblox::getCenterPointFromGridIndex(voxel, voxel_size_);
+                voxblox::getCenterPointFromGridIndex(voxel, config_.voxel_size);
 
             std::string point_str =
                 std::to_string(voxel_center[0]) + " " +
@@ -288,9 +287,9 @@ bool PanopticTracker::save_segmentation(double fusion_av)
         ROS_INFO("Could not open file %s", txt_output_file.c_str());
     }
 
-    if( save_timings_ )
+    if( config_.save_timings )
     {
-        std::string timings_file = txt_output_name_ + "_timings.txt";
+        std::string timings_file = config_.output_name + "_timings.txt";
 
         double tracking_av = get_avg_time(tracking_times_);
         double preprocess_av = get_avg_time(preprocess_times_);
@@ -346,11 +345,7 @@ void PanopticTracker::process_static_measurement(
         measurements_[id]->category = category;
     }
     measurements_[id]->points.insert(point);
-
-    if( add_weights_ )
-    {
-        measurements_[id]->weights[point] = weight;
-    }
+    measurements_[id]->weights[point] = weight;
 }
 
 void PanopticTracker::process_dynamic_measurement(
@@ -364,7 +359,7 @@ void PanopticTracker::process_dynamic_measurement(
 
 void PanopticTracker::outlier_rejection_callback(std::shared_ptr<Object_struct> measurement)
 {
-    if( outlier_rejection_method_ == "dbscan" )
+    if( config_.outlier_rejection_method == "dbscan" )
     {
         measurement->points = clustering_.reject_outliers(measurement->points);
     }
@@ -382,7 +377,7 @@ void PanopticTracker::outlier_rejection_callback(std::shared_ptr<Object_struct> 
             double sq_dist = Object_Tracker_Base::sq_mahalanobis(
                 tmp_distribution, point);
 
-            if( sq_dist < outlier_threshold_ )
+            if( sq_dist < config_.outlier_threshold )
             {
                 tmp_points.push_back(point.cast<voxblox::LongIndexElement>());
             }
@@ -390,7 +385,7 @@ void PanopticTracker::outlier_rejection_callback(std::shared_ptr<Object_struct> 
 
         measurement->points.clear();
 
-        if( tmp_points.size() > min_points_ )
+        if( tmp_points.size() > config_.cluster_min_points )
         {
             measurement->points.insert(tmp_points.begin(), tmp_points.end());
         }
@@ -401,13 +396,13 @@ void PanopticTracker::sampling_callback(std::shared_ptr<Object_struct> measureme
 {
     VoxelVector samples;
 
-    if( max_samples_ > 0 && measurement->points.size() > 0 )
+    if( config_.max_samples > 0 && measurement->points.size() > 0 )
     {
         std::sample(
             measurement->points.begin(),
             measurement->points.end(),
             std::back_inserter(samples),
-            max_samples_,
+            (unsigned int)config_.max_samples,
             std::mt19937{std::random_device{}()});
     }
     else
@@ -415,7 +410,7 @@ void PanopticTracker::sampling_callback(std::shared_ptr<Object_struct> measureme
         return;
     }
 
-    if( sample_measurements_ )
+    if( config_.sample_measurements )
     {
         for( auto s : samples )
         {
@@ -423,18 +418,11 @@ void PanopticTracker::sampling_callback(std::shared_ptr<Object_struct> measureme
         }
     }
 
-    if( infer_distribution_ )
+    if( config_.infer_distribution )
     {
         measurement->distribution.init(samples.begin(), samples.end());
     }
 }
-
-/*
-unsigned int PanopticTracker::data_association(measurement_vector& M)
-{
-    return tracker_->associate_measurements(M);
-}
-*/
 
 void PanopticTracker::fuse_callback(
     std::shared_ptr<Object_struct> measurement,
@@ -446,13 +434,7 @@ void PanopticTracker::fuse_callback(
         {
             for( auto point : measurement->points )
             {
-                double weight = 1;
-
-                if( add_weights_ )
-                {
-                    weight = measurement->weights[point];
-                }
-
+                double weight = measurement->weights[point];
                 fuse(point, id, measurement->category, weight);
             }
         }
@@ -482,7 +464,7 @@ void PanopticTracker::new_object(unsigned int id)
 {
     auto init = std::make_shared<Id_struct>();
     init->color =
-        ( visualise_global_ids_ &&
+        ( config_.visualise_global_ids &&
           !Common::val_found_in_id_arr(id, STUFF_CLASS_IDX, N_STUFF_CLASSES) )
         ? voxblox::randomColor() : CLASS_COLORS[id];
 
@@ -518,7 +500,7 @@ void PanopticTracker::update_point(Voxel point, unsigned int id, double weight)
 
 void PanopticTracker::save_time(std::chrono::duration<double> tdiff, std::vector<double>& vec)
 {
-    if( save_timings_ )
+    if( config_.save_timings )
     {
         vec.push_back(tdiff.count());
     }
