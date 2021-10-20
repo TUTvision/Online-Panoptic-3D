@@ -11,7 +11,7 @@
 #include <data_structures.h>
 #include <distributions.h>
 
-#include <clustering.h>
+#include <outlier_rejection.h>
 #include <object_tracker_base.h>
 #include <hungarian_lap.h>
 #include <greedy_matching.h>
@@ -102,7 +102,7 @@ protected:
     std::shared_ptr<VoxelSet> local_voxels_;
 
     std::shared_ptr<Object_Tracker_Base> tracker_;
-    DBSCAN clustering_;
+    std::shared_ptr<Outlier_Rejection> outlier_rejection_;
 
     std::vector<double> tracking_times_;
     std::vector<double> preprocess_times_;

@@ -27,8 +27,8 @@
     <arg name="weighting_strategy"    default="tsdf"/>
 
     <!-- Outlier rejection parameters -->
-    <arg name="perform_outlier_rejection" default="false"/>
-    <arg name="outlier_rejection_method"  default="dbscan"/>
+    <arg name="perform_outlier_rejection" default="true"/>
+    <arg name="outlier_rejection_method"  default="gaussian"/>
     <arg name="outlier_threshold"  default="6.2514"/>
     <arg name="cluster_min_points" default="10"/>
     <arg name="dbscan_epsilon"     default="1.5"/>

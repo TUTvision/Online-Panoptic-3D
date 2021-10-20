@@ -5,7 +5,7 @@ set(DEP_LIBS ${voxblox_LIBRARIES} dlib::dlib)
 
 set(TRC_HEADER_FILES
     ${CMAKE_SOURCE_DIR}/include/tracker/common.h
-    ${CMAKE_SOURCE_DIR}/include/tracker/clustering.h
+    ${CMAKE_SOURCE_DIR}/include/tracker/outlier_rejection.h
     ${CMAKE_SOURCE_DIR}/include/tracker/config.h
     ${CMAKE_SOURCE_DIR}/include/tracker/scannet_classes.h
     ${CMAKE_SOURCE_DIR}/include/tracker/data_structures.h
@@ -16,7 +16,7 @@ set(TRC_HEADER_FILES
     ${CMAKE_SOURCE_DIR}/include/tracker/greedy_matching.h
 )
 set(TRC_SOURCE_FILES
-    ${CMAKE_CURRENT_LIST_DIR}/clustering.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/outlier_rejection.cpp
     ${CMAKE_CURRENT_LIST_DIR}/panoptic_tracker.cpp
     ${CMAKE_CURRENT_LIST_DIR}/object_tracker_base.cpp
     ${CMAKE_CURRENT_LIST_DIR}/hungarian_lap.cpp

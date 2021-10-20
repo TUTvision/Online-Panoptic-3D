@@ -17,20 +17,36 @@ PanopticTracker::PanopticTracker(const fusion::Config& fusion_config)
     map = std::make_shared<VoxelMap>();
     local_voxels_ = std::make_shared<VoxelSet>();
 
-    if( config_.perform_outlier_rejection && config_.outlier_rejection_method == "dbscan" )
+    if( config_.perform_outlier_rejection )
     {
-        clustering_ = DBSCAN(config_.cluster_min_points, config_.dbscan_epsilon);
+        if( config_.outlier_rejection_method == "dbscan" )
+        {
+            outlier_rejection_.reset(
+                new DBSCAN_OR(
+                    config_.cluster_min_points,
+                    config_.dbscan_epsilon)
+            );
+            outlier_rejection_ =
+                std::dynamic_pointer_cast<DBSCAN_OR>(outlier_rejection_);
+        }
+        else
+        {
+            config_.infer_distribution = true;
+
+            outlier_rejection_.reset(
+                new Gaussian_OR(
+                    config_.cluster_min_points,
+                    config_.outlier_threshold)
+            );
+            outlier_rejection_ =
+                std::dynamic_pointer_cast<Gaussian_OR>(outlier_rejection_);
+        }
     }
 
     // distribution-based metrics require a gaussian distribution
     if( config_.likelihood_metric != "iou" )
     {
         config_.infer_distribution = true;
-    }
-
-    if( config_.association_threshold > 0 )
-    {
-        config_.normalise_likelihoods = true;
     }
 
     if( config_.tracker_type == "greedy" )
@@ -97,23 +113,6 @@ void PanopticTracker::update_map()
     auto t1 = high_resolution_clock::now();
     auto t1_total = t1;
 
-    if( config_.perform_outlier_rejection )
-    {
-        std::vector<std::thread> outlier_rejection_threads;
-
-        for( auto m : measurements_ )
-        {
-            outlier_rejection_threads.push_back(
-                std::thread(
-                    &PanopticTracker::outlier_rejection_callback, this,
-                    m.second
-                )
-            );
-        }
-
-        Common::join_threads(outlier_rejection_threads);
-    }
-
     if( config_.sample_measurements || config_.infer_distribution )
     {
         std::vector<std::thread> sampling_threads;
@@ -131,6 +130,23 @@ void PanopticTracker::update_map()
         Common::join_threads(sampling_threads);
     }
 
+    if( config_.perform_outlier_rejection )
+    {
+        std::vector<std::thread> outlier_rejection_threads;
+
+        for( auto m : measurements_ )
+        {
+            outlier_rejection_threads.push_back(
+                std::thread(
+                    &PanopticTracker::outlier_rejection_callback, this,
+                    m.second
+                )
+            );
+        }
+
+        Common::join_threads(outlier_rejection_threads);
+    }
+
     auto t2 = high_resolution_clock::now();
 
     duration<double> tdiff = t2 - t1;
@@ -138,8 +154,6 @@ void PanopticTracker::update_map()
     save_time(tdiff, preprocess_times_);
 
     t1 = high_resolution_clock::now();
-
-    //std::vector<std::thread> fusion_threads;
 
     ObjectMap local_reference;
 
@@ -172,15 +186,6 @@ void PanopticTracker::update_map()
     {
         for( auto a : *associations )
         {
-            /* probably not thread-safe
-            fusion_threads.push_back(
-                std::thread(
-                    &PanopticTracker::fuse_callback, this,
-                    measurements_[a.measurement_id],
-                    a.target_id
-                )
-            );
-            */
             fuse_callback(
                 measurements_[a.measurement_id],
                 a.target_id
@@ -193,8 +198,6 @@ void PanopticTracker::update_map()
     }
     measurements_.clear();
     local_voxels_->clear();
-
-    //join_threads(fusion_threads);
 
     t2 = high_resolution_clock::now();
     auto t2_total = t2;
@@ -210,8 +213,6 @@ void PanopticTracker::update_map()
 
 bool PanopticTracker::save_segmentation(double fusion_av)
 {
-    // TODO: save average timings ...
-
     std::ofstream output_fs;
     std::ofstream colormap_fs;
 
@@ -357,6 +358,7 @@ void PanopticTracker::process_dynamic_measurement(
     return;
 }
 
+/*
 void PanopticTracker::outlier_rejection_callback(std::shared_ptr<Object_struct> measurement)
 {
     if( config_.outlier_rejection_method == "dbscan" )
@@ -389,6 +391,23 @@ void PanopticTracker::outlier_rejection_callback(std::shared_ptr<Object_struct> 
         {
             measurement->points.insert(tmp_points.begin(), tmp_points.end());
         }
+    }
+}
+*/
+
+void PanopticTracker::outlier_rejection_callback(std::shared_ptr<Object_struct> measurement)
+{
+    if( !measurement->distribution.undef &&
+        config_.outlier_rejection_method != "dbscan" )
+    {
+        measurement->points = outlier_rejection_->reject_outliers(
+            measurement->points,
+            measurement->distribution);
+    }
+    else
+    {
+        measurement->points = outlier_rejection_->reject_outliers(
+            measurement->points);
     }
 }
 
