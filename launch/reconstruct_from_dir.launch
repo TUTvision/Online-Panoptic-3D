@@ -1,7 +1,7 @@
 <launch>
 
     <!-- Data publisher parameters -->
-    <arg name="data_root" default="/home/leevi/DATA/panoptic-3d//scene0000_00_full"/>
+    <arg name="data_root" default="path/to/scannet/scene"/>
     <arg name="data_format"      default="scannet"/>
     <arg name="publish_rate"     default="0"/>
     <arg name="publish_interval" default="10"/>
@@ -39,7 +39,7 @@
     <arg name="max_samples" default="1000"/>
 
     <!-- Output parameters -->
-    <arg name="output_name" default="$(arg data_root)/sc0000_test3"/>
+    <arg name="output_name" default="$(arg data_root)/3d_panoptic"/>
     <arg name="visualise_global_ids" default="true"/>
 
     <!-- RViz config -->
@@ -78,16 +78,6 @@
         <remap from="depth_registered/camera_info" to="/camera/depth/camera_info_reg"/>
         <remap from="depth_registered/image_rect" to="/camera/depth/img_reg"/>
     </node>
-
-    <!--
-    <node pkg="nodelet" type="nodelet" name="nodelet1"
-          args="load depth_image_proc/point_cloud_xyz nodelet_manager"
-          launch-prefix="bash -c 'sleep 5; $0 $@'">
-      <remap from="camera_info" to="/camera/depth/camera_info"/>
-      <remap from="image_rect" to="/camera/depth/img_rect_m"/>
-      <remap from="points" to="/camera/xyz_pointcloud"/>
-    </node>
-    -->
 
     <node pkg="nodelet" type="nodelet" name="points_xyzrgb" args="load depth_image_proc/point_cloud_xyzrgb pc_nodelet_manager">
         <remap from="rgb/camera_info" to="/camera/rgb/camera_info"/>
