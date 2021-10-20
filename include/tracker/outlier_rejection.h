@@ -41,7 +41,7 @@ public:
         unsigned int min_pts,
         double threshold)
         : min_pts_(min_pts),
-          threshold_(threshold_){}
+          threshold_(threshold){}
 
     virtual ~Outlier_Rejection() = default;
 

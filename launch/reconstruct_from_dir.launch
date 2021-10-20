@@ -9,8 +9,8 @@
 
     <!-- Voxblox parameters -->
     <arg name="integrator_type"     default="fast"/>
-    <arg name="voxel_size"          default="0.024"/>
-    <arg name="truncation_distance" default="0.096"/>
+    <arg name="voxel_size"          default="0.05"/>
+    <arg name="truncation_distance" default="0.15"/>
     <arg name="update_mesh_every_n_sec" default="0.1"/>
     <arg name="max_ray_length_m"        default="8"/>
     <arg name="voxel_carving_enabled"   default="true"/>

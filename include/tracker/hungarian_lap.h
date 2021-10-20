@@ -43,12 +43,6 @@ protected:
         dlib::matrix<double>& likelihood_matrix
     );
 
-    void update_map();
-    void update_map(
-        ObjectMap& measurements,
-        std::shared_ptr<AssociationVector> assignments
-    );
-
     bool normalise_likelihoods_;
     double association_threshold_;
 

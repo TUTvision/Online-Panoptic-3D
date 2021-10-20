@@ -356,43 +356,6 @@ void PanopticTracker::process_dynamic_measurement(
     return;
 }
 
-/*
-void PanopticTracker::outlier_rejection_callback(std::shared_ptr<Object_struct> measurement)
-{
-    if( config_.outlier_rejection_method == "dbscan" )
-    {
-        measurement->points = clustering_.reject_outliers(measurement->points);
-    }
-    else
-    {
-        Gaussian3D tmp_distribution;
-        tmp_distribution.init(measurement->points.begin(), measurement->points.end());
-
-        VoxelVector tmp_points;
-
-        for( auto voxel : measurement->points )
-        {
-            Vector3 point = voxel.cast<float>();
-
-            double sq_dist = Object_Tracker_Base::sq_mahalanobis(
-                tmp_distribution, point);
-
-            if( sq_dist < config_.outlier_threshold )
-            {
-                tmp_points.push_back(point.cast<voxblox::LongIndexElement>());
-            }
-        }
-
-        measurement->points.clear();
-
-        if( tmp_points.size() > config_.cluster_min_points )
-        {
-            measurement->points.insert(tmp_points.begin(), tmp_points.end());
-        }
-    }
-}
-*/
-
 void PanopticTracker::outlier_rejection_callback(std::shared_ptr<Object_struct> measurement)
 {
     if( !measurement->distribution.undef &&
