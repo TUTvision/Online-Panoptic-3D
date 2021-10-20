@@ -56,8 +56,7 @@ PanopticTracker::PanopticTracker(const fusion::Config& fusion_config)
                 N_STUFF_CLASSES,
                 config_.normalise_likelihoods,
                 config_.association_threshold,
-                config_.likelihood_metric,
-                map)
+                config_.likelihood_metric)
         );
         tracker_ = std::dynamic_pointer_cast<Greedy_LAP>(tracker_);
     }
@@ -69,8 +68,7 @@ PanopticTracker::PanopticTracker(const fusion::Config& fusion_config)
                 config_.use_local_reference,
                 config_.normalise_likelihoods,
                 config_.association_threshold,
-                config_.likelihood_metric,
-                map)
+                config_.likelihood_metric)
         );
         tracker_ = std::dynamic_pointer_cast<H_LAP>(tracker_);
     }

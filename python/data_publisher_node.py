@@ -35,19 +35,13 @@ def run_loader(pub, rate, interval, loader):
 
             time = rospy.get_rostime()
 
-            rospy.loginfo("rgb")
             pub.publish_rgb_from_file(r, time)
-            rospy.loginfo("depth")
             pub.publish_depth_from_file(d, time)
-            rospy.loginfo("mask")
             pub.publish_mask_from_file(m, time)
-            rospy.loginfo("label")
             pub.publish_label_from_file(li, lc, time)
-            rospy.loginfo("pose")
             pub.publish_pose(p, time)
 
             scheduler.sleep()
-            rospy.loginfo("get frame")
             frame = loader.get_frame(interval)
 
             count += 1

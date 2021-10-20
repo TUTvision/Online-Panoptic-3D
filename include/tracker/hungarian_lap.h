@@ -22,9 +22,8 @@ public:
         unsigned int min_id = 0,
         bool use_local_reference = true,
         bool normalise_likelihoods = true,
-        double new_target_likelihood_ = 0.1,
-        std::string likelihood_metric = "iou",
-        std::shared_ptr<VoxelMap> reference_map = nullptr
+        double association_threshold = 0.1,
+        std::string likelihood_metric = "iou"
     );
     ~H_LAP(){}
 
@@ -51,12 +50,9 @@ protected:
     );
 
     bool normalise_likelihoods_;
-    double new_target_likelihood_;
+    double association_threshold_;
 
     std::string likelihood_metric_;
-
-    ObjectMap map_;
-    std::shared_ptr<VoxelMap> reference_map_;
 };
 
 } // namespace fusion

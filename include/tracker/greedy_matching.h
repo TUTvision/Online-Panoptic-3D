@@ -21,9 +21,8 @@ public:
     Greedy_LAP(
         unsigned int min_id = 0,
         bool use_local_reference = true,
-        double new_target_likelihood_ = 0.25,
-        std::string likelihood_metric = "iou",
-        std::shared_ptr<VoxelMap> reference_map = nullptr
+        double association_threshold_ = 0.25,
+        std::string likelihood_metric = "iou"
     );
     ~Greedy_LAP(){}
 
@@ -41,12 +40,9 @@ protected:
         std::shared_ptr<AssociationVector> assignments
     );
 
-    double new_target_likelihood_;
+    double association_threshold_;
 
     std::string likelihood_metric_;
-
-    ObjectMap map_;
-    std::shared_ptr<VoxelMap> reference_map_;
 };
 
 } // namespace fusion
