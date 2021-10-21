@@ -50,6 +50,10 @@ Currently, images are assumed to be already rectified when saved in the director
 Voxblox's parameters function as explained in their documentation, and can be given as an input to our reconstruction node:
 [https://voxblox.readthedocs.io/en/latest/pages/The-Voxblox-Node.html](https://voxblox.readthedocs.io/en/latest/pages/The-Voxblox-Node.html)
 
+Published topics are the same as in voxblox.
+
+### subscribed topics
+- pointcloud: similar to Voxblox, but in our format (see [data.md](https://github.com/TUTvision/Online-Panoptic-3D/blob/main/docs/data.md))
 
 ### Tracker parameters
 - tracker_type
