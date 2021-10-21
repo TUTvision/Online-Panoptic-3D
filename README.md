@@ -79,7 +79,7 @@ This will do the following:
 3. Run our panoptic reconstruction node
 4. Visualise online results in RViz
 
-After the scan sequence has ended, a mesh (\*.ply), id color values (\*_label_map.txt), id's and classes associated with voxel center points (\*.txt) and average excecution times (\*_timings.txt) are saved to the output directory. (see parameters above)
+After the scan sequence has ended, a mesh (\*.ply), id color values (\*_label_map.txt), id's and classes associated with voxel center points (\*.txt) and average excecution times (\*_timings.txt) are saved to the output directory. (see (docs/parameters.md)[https://github.com/TUTvision/Online-Panoptic-3D/edit/main/docs/parameters.md])
 
 ### Run for a directory of scans
 
