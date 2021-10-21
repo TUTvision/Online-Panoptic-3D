@@ -35,7 +35,6 @@ protected:
 
     std::mutex update_point_mtx_;
     std::mutex add_voxel_mtx_;
-
 };
 } // end namespace fusion
 #endif // FUSION_SIMPLE_INTEGRATOR_H

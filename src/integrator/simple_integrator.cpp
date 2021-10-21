@@ -70,17 +70,6 @@ void SimpleTsdfIntegrator::integrateFunction(
         const uint8_t category   = color.g;
         const double confidence  = color.r / divisor;
 
-        /*
-        if( local_id != VOID_CLASS_ID )
-        {
-            confidence_array confidence = {0};
-            confidence[category] = 1;
-
-            std::lock_guard<std::mutex> point_guard(update_point_mtx_);
-            tracker_.add_local_id(local_id, confidence);
-        }
-        */
-
         const voxblox::Point origin = T_G_C.getPosition();
         const voxblox::Point point_G = T_G_C * point_C;
 
@@ -105,11 +94,9 @@ void SimpleTsdfIntegrator::integrateFunction(
             bool is_occupied = res.first;
             bool weighting_val = res.second;
 
-            if( is_occupied && local_id != VOID_CLASS_ID )
+            if( is_occupied )
             {
                 std::lock_guard<std::mutex> voxel_guard(add_voxel_mtx_);
-                //tracker_.add_voxel_to_local_id(local_id, global_voxel_idx, weighting_val);
-
                 add_measurement(local_id, category, global_voxel_idx, weighting_val);
             }
         }

@@ -1,3 +1,5 @@
+/* raiviol 5/2021
+*/
 
 #ifndef FUSION_FAST_INTEGRATOR_H
 #define FUSION_FAST_INTEGRATOR_H
