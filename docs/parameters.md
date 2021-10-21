@@ -8,6 +8,22 @@ roslaunch online-panoptic-3d reconstruct_from_dir.launch \
   output_name:="/home/user/DATA/scannet_reconstruction/scene0000_00_output"
 ```
 ## Data publisher node
+
+Reads data from directory and publishes it as ROS messages. 
+
+Currently, images are assumed to be already rectified when saved in the directory, as is the case with ScanNet. However, one could also easily rectify them with ROS tools if instrinsics are available. For this, you would need to add a new node to the [launch file](https://github.com/TUTvision/Online-Panoptic-3D/blob/main/launch/reconstruct_from_dir.launch), e.g. [image_proc/rectify](http://wiki.ros.org/image_proc)
+
+### Published topics
+
+- /camera/rgb/img_rect: rectified color images
+- /camera/rgb/camera_info: color sensor intrinsics and other metadata
+- /camera/depth/img_rect: rectified depth images
+- /camera/depth/camera_info: depth sensor intrinsics and other metadata
+- /camera/label/color_rect: semantic labels as rectified rgb images
+- /camera/label/enc_rect: panoptic labels in our format as rectified rgb images
+
+### Parameters
+
 - data_root 
   - path to directory containing the necessary data (i.e. dirs like color/, depth/ and camera intrinsics)
 - data_format
@@ -29,7 +45,7 @@ roslaunch online-panoptic-3d reconstruct_from_dir.launch \
   - smaller percentages will speed up processing significantly
   -  e.g. 0.5 means cloud resolution will be reduced by half, i.e. if original images have 1280×720 pixels, the point cloud will have only 640x360 points
   - default: 0.5
-    
+
 ## online-panoptic-3d node
 Voxblox's parameters function as explained in their documentation, and can be given as an input to our reconstruction node:
 [https://voxblox.readthedocs.io/en/latest/pages/The-Voxblox-Node.html](https://voxblox.readthedocs.io/en/latest/pages/The-Voxblox-Node.html)
@@ -106,7 +122,7 @@ Voxblox's parameters function as explained in their documentation, and can be gi
   - larger values will result in less dense clusters
   - default: 1.5
 
-### Data processing parameters -->
+### Data processing parameters
 - infer_distribution
   - boolean (true/false)
   - if true, a multivariate gaussian is inferred for each detection
@@ -123,7 +139,7 @@ Voxblox's parameters function as explained in their documentation, and can be gi
   - if threre are less detectied points for an object than this, they will all be used
   - default="1000"/>
 
-### Output parameters -->
+### Output parameters
 - output_name
   - path to desired output directory
   - default: (arg data_root)/3d_panoptic
