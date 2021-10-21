@@ -106,7 +106,6 @@ def parse_panoptic_results(path):
                 i = int(splits[3])
                 l = int(splits[4])
 
-                #if l in EVAL_LABELS and i > 0:
                 vertices.append(v)
                 labels.append(l)
                 instances.append(i)
@@ -147,7 +146,6 @@ def parse_panoptic_mesh(mesh_file, label_color_file):
 
     for i, v in enumerate(mesh['vertex']):
         color = ( v['red'], v['green'], v['blue'] )
-        #print(color)
         instance, idx = label_from_color(color, colors, c_instances)
         label = c_labels[idx]
 
@@ -193,10 +191,6 @@ def generate_panoptic_mesh(mesh_file,
             colors.append(randRGB(instance))
 
     mesh = PlyData.read(str(mesh_file))
-    #vertices = mesh['vertex']
-
-    print(np.unique(labels))
-    print(np.unique(instances))
 
     for i, inst in enumerate(instances):
         if semantic or labels[instances.index(inst)] in STUFF_LABELS:
@@ -212,14 +206,8 @@ def generate_panoptic_mesh(mesh_file,
 
 def main(output_file, panoptic_results, label_color_file, scannet_file, mesh_file=None, mesh_output=None):
 
-    # TODO: for some reason, instancse are not correct at all
-    # - possbile other approach: use voxblox mesh instead of voxel grid
-
     if not panoptic_results.exists():
         raise Exception(f"Label file {str(panoptic_results)} not found.")
-
-    #if not scannet_file.exists():
-    #    raise Exception(f"Label file {str(scannet_file)} not found.")
 
     if mesh_file is not None:
         if not mesh_file.exists():
@@ -260,11 +248,6 @@ def main(output_file, panoptic_results, label_color_file, scannet_file, mesh_fil
     nn_instances = []
 
     for i, idx in enumerate(I):
-        # weight by distance?
-        # or simply choose the nearest neighbor?
-
-        #minfo = mode(mesh_labels[idx])
-        #li = minfo[0][0]
         li = mesh_labels[idx][0]
         l = EVAL_LABELS[li] if li < len(EVAL_LABELS) else 0
 

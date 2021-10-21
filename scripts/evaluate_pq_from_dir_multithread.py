@@ -3,6 +3,7 @@ import re
 import sys
 import math
 import threading
+import multiprocessing
 import random
 import argparse
 from pathlib import Path
@@ -14,6 +15,8 @@ import faiss
 from plyfile import PlyData
 
 from scipy.optimize import linear_sum_assignment
+
+from thread_launcher import Thread_launcher
 
 STUFF_LABELS = [1, 2]
 THING_LABELS = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 24, 28, 33, 34, 36, 39]
@@ -38,7 +41,6 @@ def parse_panoptic_results(path):
                 i = int(splits[3])
                 l = int(splits[4])
 
-                #if l in EVAL_LABELS and i > 0:
                 vertices.append(v)
                 labels.append(l)
                 instances.append(i)
@@ -124,170 +126,111 @@ def hungarian_lap(iou_map, iou_threshold):
 
     return matches, matched_pred_inst
 
-class Thread(threading.Thread):
-   def __init__(self, callback, args):
-      threading.Thread.__init__(self)
+def add_one_to_count(label, counts, lock):
+    lock.acquire()
 
-      self.callback = callback
-      self.args = args
+    if label not in counts.keys():
+        counts[label] = 1
+    else:
+        counts[label] += 1
 
-   def run(self):
-       self.callback(*self.args)
+    lock.release()
 
-class Thread_launcher():
-    def __init__(self,
-        prediction_name,
-        ground_truth_name,
-        n_threads = 8):
+def callback(
+    scenes,
+    prediction_name,
+    ground_truth_name,
+    class_tp_counts,
+    class_fp_counts,
+    class_fn_counts,
+    class_tp_iou_sum,
+    class_gt_counts,
+    class_det_counts,
+    lock,
+    iou_th=0.5):
 
-        self.n_threads = n_threads
-        self.threads = []
-        self.lock = threading.Lock()
+    for i, d in enumerate(scenes):
+        print(f"Evaluating {d.name}...")
 
-        self.prediction_name = prediction_name
-        self.ground_truth_name = ground_truth_name
+        prediction = d / prediction_name
+        ground_truth = d / ground_truth_name
 
-        self.class_tp_counts = {}
-        self.class_fp_counts = {}
-        self.class_fn_counts = {}
-        self.class_tp_iou_sum = {}
-        self.class_gt_counts = {}
-        self.class_det_counts = {}
+        pred_v, pred_l, pred_i = parse_panoptic_results(prediction)
+        gt_v, gt_l, gt_i       = parse_panoptic_results(ground_truth)
 
-    def add_one_to_count(self, label, counts):
+        pred_segs = get_segments(pred_v, pred_l, pred_i)
+        gt_segs   = get_segments(gt_v, gt_l, gt_i )
 
-        self.lock.acquire()
+        gt_overlaps = {}
 
-        if label not in counts.keys():
-            counts[label] = 1
-        else:
-            counts[label] += 1
+        for idx, gt_inst in enumerate(gt_i):
+            if gt_inst not in gt_segs.keys(): continue
 
-        self.lock.release()
+            pred_inst = pred_i[idx]
 
-    def callback(self, scenes, iou_th=0.5):
-        for i, d in enumerate(scenes):
-            print(f"Evaluating {d.name}...")
+            if pred_inst not in pred_segs.keys(): continue
 
-            prediction = d / self.prediction_name
-            ground_truth = d / self.ground_truth_name
-
-            pred_v, pred_l, pred_i = parse_panoptic_results(prediction)
-            gt_v, gt_l, gt_i       = parse_panoptic_results(ground_truth)
-
-            pred_segs = get_segments(pred_v, pred_l, pred_i)
-            gt_segs   = get_segments(gt_v, gt_l, gt_i )
-
-            gt_overlaps = {}
-
-            for idx, gt_inst in enumerate(gt_i):
-
-                # take into account ignored segments
-
-                if gt_inst not in gt_segs.keys(): continue
-
-                pred_inst = pred_i[idx]
-
-                if pred_inst not in pred_segs.keys(): continue
-
-                if gt_inst not in gt_overlaps.keys():
-                    gt_overlaps[gt_inst] = {pred_inst}
-                else:
-                    gt_overlaps[gt_inst].add(pred_inst)
-
-            iou_map = {}
-            matches = {}
-            matched_pred_inst = []
-
-            for gt_inst, pred_set in gt_overlaps.items():
-
-                if gt_inst not in iou_map.keys():
-                    iou_map[gt_inst] = {}
-
-                for pred_inst in pred_set:
-                    iou = intersection_over_union(
-                        gt_segs[gt_inst]['vertices'],
-                        pred_segs[pred_inst]['vertices'])
-
-                    if iou > iou_th and iou_th == 0.5:
-                        matches[gt_inst] = pred_inst
-                        matched_pred_inst.append(pred_inst)
-                        iou_map[gt_inst][pred_inst] = iou
-
-                    else:
-                        iou_map[gt_inst][pred_inst] = iou
-
-            if iou_th != 0.5:
-                matches, matched_pred_inst = hungarian_lap(iou_map, iou_th)
-
-            for idx, gt_inst in enumerate(gt_segs.keys()):
-
-                gt_label = gt_segs[gt_inst]['label']
-
-                self.add_one_to_count(gt_label, self.class_gt_counts)
-
-                if gt_inst not in matches.keys(): # false negative
-                    self.add_one_to_count(gt_label, self.class_fn_counts)
-
-                    continue
-
-                pred_inst = matches[gt_inst]
-                pred_label = pred_segs[pred_inst]['label']
-
-                if gt_label == pred_label: # true positive
-                    self.add_one_to_count(gt_label, self.class_tp_counts)
-
-                    if gt_label not in self.class_tp_iou_sum.keys():
-                        self.class_tp_iou_sum[gt_label] = iou_map[gt_inst][pred_inst]
-                    else:
-                        self.class_tp_iou_sum[gt_label] += iou_map[gt_inst][pred_inst]
-
-            for idx, pred_inst in enumerate(pred_segs.keys()):
-
-                pred_label = pred_segs[pred_inst]['label']
-                self.add_one_to_count(pred_label, self.class_det_counts)
-
-                if pred_inst not in matched_pred_inst: # false positive
-                    self.add_one_to_count(pred_label, self.class_fp_counts)
-
-            print(f"{d.name} evaluated!")
-
-    def launch(self, scenes, threshold):
-        n_scenes = len(scenes)
-        partition_size = int(math.ceil(n_scenes/self.n_threads))
-
-        last_thread = False
-
-        idx = 0
-        for i in range(self.n_threads):
-            if idx + partition_size >= n_scenes:
-                partition = scenes[idx:]
-
-                last_thread = True
+            if gt_inst not in gt_overlaps.keys():
+                gt_overlaps[gt_inst] = {pred_inst}
             else:
-                partition = scenes[idx : idx + partition_size]
+                gt_overlaps[gt_inst].add(pred_inst)
 
-            idx += partition_size
+        iou_map = {}
+        matches = {}
+        matched_pred_inst = []
 
-            t = Thread(self.callback, (partition, threshold))
-            t.start()
-            self.threads.append(t)
+        for gt_inst, pred_set in gt_overlaps.items():
 
-            if last_thread: break
+            if gt_inst not in iou_map.keys():
+                iou_map[gt_inst] = {}
 
-    def join(self):
-        for t in self.threads:
-            t.join()
+            for pred_inst in pred_set:
+                iou = intersection_over_union(
+                    gt_segs[gt_inst]['vertices'],
+                    pred_segs[pred_inst]['vertices'])
 
-        self.threads.clear()
+                if iou > iou_th and iou_th == 0.5:
+                    matches[gt_inst] = pred_inst
+                    matched_pred_inst.append(pred_inst)
+                    iou_map[gt_inst][pred_inst] = iou
 
-        return \
-            self.class_tp_counts, \
-            self.class_fp_counts, \
-            self.class_fn_counts, \
-            self.class_tp_iou_sum, \
-            self.class_gt_counts, \
-            self.class_det_counts
+                else:
+                    iou_map[gt_inst][pred_inst] = iou
+
+        if iou_th != 0.5:
+            matches, matched_pred_inst = hungarian_lap(iou_map, iou_th)
+
+        for idx, gt_inst in enumerate(gt_segs.keys()):
+
+            gt_label = gt_segs[gt_inst]['label']
+
+            add_one_to_count(gt_label, class_gt_counts, lock)
+
+            if gt_inst not in matches.keys(): # false negative
+                add_one_to_count(gt_label, class_fn_counts, lock)
+
+                continue
+
+            pred_inst = matches[gt_inst]
+            pred_label = pred_segs[pred_inst]['label']
+
+            if gt_label == pred_label: # true positive
+                add_one_to_count(gt_label, class_tp_counts, lock)
+
+                if gt_label not in class_tp_iou_sum.keys():
+                    class_tp_iou_sum[gt_label] = iou_map[gt_inst][pred_inst]
+                else:
+                    class_tp_iou_sum[gt_label] += iou_map[gt_inst][pred_inst]
+
+        for idx, pred_inst in enumerate(pred_segs.keys()):
+
+            pred_label = pred_segs[pred_inst]['label']
+            add_one_to_count(pred_label, class_det_counts, lock)
+
+            if pred_inst not in matched_pred_inst: # false positive
+                add_one_to_count(pred_label, class_fp_counts, lock)
+
+    print(f"{d.name} evaluated!")
 
 def write_output(string, stream):
     stream.write(string + '\n')
@@ -308,18 +251,25 @@ def main(source_dir, prediction_name, ground_truth_name, output_file, threshold=
     class_gt_counts = {}
     class_det_counts = {}
 
-    multiThreading = Thread_launcher(
-        prediction_name,
-        ground_truth_name)
+    lock = threading.Lock()
+    n_cpu = multiprocessing.cpu_count()
 
-    multiThreading.launch(scenes, threshold)
-    class_tp_counts, \
-    class_fp_counts, \
-    class_fn_counts, \
-    class_tp_iou_sum,\
-    class_gt_counts, \
-    class_det_counts \
-        = multiThreading.join()
+    multiThreading = Thread_launcher(
+        callback,
+        n_cpu,
+        prediction_name = prediction_name,
+        ground_truth_name = ground_truth_name,
+        class_tp_counts = class_tp_counts,
+        class_fp_counts = class_fp_counts,
+        class_fn_counts = class_fn_counts,
+        class_tp_iou_sum = class_tp_iou_sum,
+        class_gt_counts = class_gt_counts,
+        class_det_counts = class_det_counts,
+        lock = lock,
+        iou_th=threshold)
+
+    multiThreading.launch(scenes)
+    multiThreading.join()
 
     RQ = {}
     SQ = {}
@@ -341,8 +291,6 @@ def main(source_dir, prediction_name, ground_truth_name, output_file, threshold=
         if l not in class_tp_counts.keys():
             SQ[l] = 0
         else:
-            #mean_iou = class_tp_iou_sum[l] / class_tp_iou_n[l]
-
             SQ[l] = class_tp_iou_sum[l] / n_tp
 
         RQ[l] = n_tp / ( n_tp + 0.5*n_fp + 0.5*n_fn)
@@ -351,7 +299,7 @@ def main(source_dir, prediction_name, ground_truth_name, output_file, threshold=
 
     output_fs = open(output_file, 'w', encoding="utf-8")
     write_output("", output_fs)
-    write_output(f"{16*' '}    SQ   RQ   PQ  G D", output_fs)
+    write_output(f"{16*' '}     SQ      RQ      PQ  G D", output_fs)
 
     st_sq_sum = 0
     st_rq_sum = 0
@@ -397,7 +345,7 @@ def main(source_dir, prediction_name, ground_truth_name, output_file, threshold=
 
     write_output("", output_fs)
 
-    write_output(f"{'MEAN':>16}    SQ   RQ   PQ", output_fs)
+    write_output(f"{'MEAN':>16}     SQ      RQ      PQ", output_fs)
 
     st_sq_mean = st_sq_sum / len(STUFF_LABELS)
     st_rq_mean = st_rq_sum / len(STUFF_LABELS)

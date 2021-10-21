@@ -232,9 +232,6 @@ def write_instance_results(output_dir, output_name, segments, vertices):
 
 def main(output_name, output_dir, panoptic_results, label_color_file, scannet_file):
 
-    # TODO: for some reason, instancse are not correct at all
-    # - possbile other approach: use voxblox mesh instead of voxel grid
-
     if not panoptic_results.exists():
         raise Exception(f"Label file {str(panoptic_results)} not found.")
     if not label_color_file.exists():
