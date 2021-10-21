@@ -124,4 +124,4 @@ python3 evaluate_pq_from_dir_multithread.py \
     -o path/to/results/directory/scannet_pq.txt
 ```
 
-You can also reformat results for SCanNet evaluation with [scripts/mesh_labels_to_scannet_format_from_dir.py](https://github.com/TUTvision/Online-Panoptic-3D/blob/main/scripts/mesh_labels_to_scannet_format_from_dir.py)
+You can also reformat results for ScanNet evaluation with [scripts/mesh_labels_to_scannet_format_from_dir.py](https://github.com/TUTvision/Online-Panoptic-3D/blob/main/scripts/mesh_labels_to_scannet_format_from_dir.py)
