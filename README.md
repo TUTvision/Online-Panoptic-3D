@@ -58,48 +58,10 @@ Currently not supported. However, the tracker library and Voxblox are separate f
 
 Currently, input data has to be read from disk, however in the future we plan to add a way to work with real-time sensor streams as well.
 
-### Input data
+### Prerequisites
 
-Currently we only support data saved in a directory in a specific format. With some work, however, one could design their own input pipeline to match our panoptic point cloud format.
-
-See our panoptic segmentation model's documentation on how to process ScanNet scenes to this format: [ScanNet-EfficientPS](https://github.com/TUTvision/ScanNet-EfficientPS)
-
-Panoptic segmentations are encoded as 8-bit RGB point clouds:
-- First color channel (R) contains the confidence score of the points estimated class as a 8-bit unsigned integer: scores in the [0, 1] range are binned to integers in [0, 255] range
-- Second channel (G) contains the estimated class of the point in [0, 255] range
-- Third channel (B) contains the estimated panoptic instance in [0, 255] range
-
-We provide a separate ROS node ([python/data_publisher_node.py](https://github.com/TUTvision/Online-Panoptic-3D/blob/main/python/data_publisher_node.py)) for publishing these point clouds from a directory with predetermined structure:
-```
-scan_root
-|-- color/ # color images
-|  |--  ...
-|-- depth/ # depth images
-|  |--  ...
-|-- pose/  # poses in ScanNet format
-|  |--  ...
-|-- panoptic/ # images processed with ScanNet-EfficientPS
-|  |--  ...
-|-- colormask/ # optional, for visualisation only
-|  |--  ...
-|-- intrinsic_color.txt # camera intrinsics of color sensor
-|-- intrinsic_depth.txt # camera intrinsics of depth sensor
-```
-
-### Parameters
-
-Voxblox's parameters work as explained in their documentation, and can be given as an input to our reconstruction node:
-[https://voxblox.readthedocs.io/en/latest/pages/The-Voxblox-Node.html](https://voxblox.readthedocs.io/en/latest/pages/The-Voxblox-Node.html)
-
-Subscribed ROS topics:
-
-Published ROS topics:
-
-Parameters to the data publisher node:
-
-Parameters to the reconstruction node:
-association_threshold:
-- if 0, threshold = 1/n
+- Process the data to a suitable format. We provide a data publisher node ([python/data_publisher_node.py](https://github.com/TUTvision/Online-Panoptic-3D/blob/main/python/data_publisher_node.py)) for reading data with our specific format (explained at [docs/data.md](https://github.com/TUTvision/Online-Panoptic-3D/blob/main/docs/data.md)) and publishing it as ROS messages.
+- Also check the documentation for our ros node parameters at [docs/parameters.md](https://github.com/TUTvision/Online-Panoptic-3D/blob/main/docs/parameters.md)
 
 ### Run for a single scan
 
@@ -117,7 +79,7 @@ This will do the following:
 3. Run our panoptic reconstruction node
 4. Visualise online results in RViz
 
-After the scan sequence has ended, a mesh (*.ply), id color values (*_label_map.txt), id's and classes associated with voxel center points (*.txt) and average excecution times (*_timings.txt) are saved to the output directory. (see parameters above)
+After the scan sequence has ended, a mesh (\*.ply), id color values (\*_label_map.txt), id's and classes associated with voxel center points (\*.txt) and average excecution times (\*_timings.txt) are saved to the output directory. (see parameters above)
 
 ### Run for a directory of scans
 
