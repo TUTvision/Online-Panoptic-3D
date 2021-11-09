@@ -113,7 +113,7 @@ python3 mesh_labels_to_gt_from_dir.py \
     -p name_of_reconstruction_output.ply  \
     -l name_of_reconstruction_output_test_color_map.txt  \
     -s gt_panoptic.txt  \
-    -o transofrmed_labels_name.txt
+    -o transformed_labels_name.txt
 ```
 3. Evaulate panoptic quality accross a directory of scans
  ```
