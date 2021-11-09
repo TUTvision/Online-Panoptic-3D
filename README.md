@@ -102,7 +102,7 @@ cd ~/catkin_ws/src/Online-Panoptic-3D/scripts
 
 python3 export_panoptic_gt.py \
     --source_dir path/to/scannet/data/root \
-    --output_name panoptic_gt.txt \
+    --output_name gt \
     -l path/to/ScanNet/scannetv2-labels.combined.tsv \
     -sc path/to/ScanNet/
 ```
