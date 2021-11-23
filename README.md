@@ -24,3 +24,8 @@ Panoptic segmentation model:
 - [How to install](https://github.com/TUTvision/Online-Panoptic-3D/blob/main/docs/installation.md)
 - [How to run](https://github.com/TUTvision/Online-Panoptic-3D/blob/main/docs/how_to_run.md)
 - [How to evaluate](https://github.com/TUTvision/Online-Panoptic-3D/blob/main/docs/evaluation.md)
+
+## Citation
+```
+TBD
+```
