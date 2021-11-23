@@ -6,7 +6,7 @@ Panoptic segmentation model:
 [https://github.com/TUTvision/ScanNet-EfficientPS](https://github.com/TUTvision/ScanNet-EfficientPS)
 
 ## Demo
-[!](https://youtu.be/rqUEj7zY4Pc)
+[!video](https://youtu.be/rqUEj7zY4Pc)
 
 ## Requirements
 - [ROS melodic](http://wiki.ros.org/melodic/Installation/Ubuntu)
