@@ -19,7 +19,7 @@ python3 mesh_labels_to_gt_from_dir.py \
     -s gt_panoptic.txt  \
     -o transformed_labels_name.txt
 ```
-3. Evaulate panoptic quality accross a directory of scans
+3. Evaluate panoptic quality accross a directory of scans
  ```
 python3 evaluate_pq_from_dir_multithread.py \
     -i path/to/scannet/data/root \
