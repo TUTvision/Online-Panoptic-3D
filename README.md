@@ -32,7 +32,7 @@ ArXiv preprint:
 TBD
 ```
 
-ICIAP2021:
+Published in 21st International Conference on Image Analysis and Processing (ICIAP 2021):
 ```
 TBD
 ```
