@@ -26,6 +26,13 @@ Panoptic segmentation model:
 - [How to evaluate](https://github.com/TUTvision/Online-Panoptic-3D/blob/main/docs/evaluation.md)
 
 ## Citation
+
+ArXiv preprint:
+```
+TBD
+```
+
+ICIAP2021:
 ```
 TBD
 ```
