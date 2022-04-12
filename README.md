@@ -29,7 +29,14 @@ Panoptic segmentation model:
 
 ArXiv preprint:
 ```
-TBD
+@misc{online_panoptic_3d,
+  doi = {10.48550/ARXIV.2204.00231},
+  url = {https://tutvision.github.io/Online-Panoptic-3D/},
+  author = {Raivio, Leevi and Rahtu, Esa},
+  title = {Online panoptic 3D reconstruction as a Linear Assignment Problem},  
+  publisher = {arXiv},
+  year = {2022}
+}
 ```
 
 Published in 21st International Conference on Image Analysis and Processing (ICIAP 2021):
