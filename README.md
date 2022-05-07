@@ -27,7 +27,7 @@ Panoptic segmentation model:
 
 ## Citation
 
-ArXiv preprint:
+[ArXiv preprint](https://arxiv.org/abs/2204.00231):
 ```
 @misc{online_panoptic_3d,
   doi = {10.48550/ARXIV.2204.00231},
