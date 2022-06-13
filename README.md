@@ -52,6 +52,4 @@ Published in 21st International Conference on Image Analysis and Processing (ICI
   doi = {10.1007/978-3-031-06430-2_4},
   url = {https://tutvision.github.io/Online-Panoptic-3D/}
 }
-
-
 ```
