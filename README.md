@@ -39,7 +39,19 @@ Panoptic segmentation model:
 }
 ```
 
-Published in 21st International Conference on Image Analysis and Processing (ICIAP 2021):
+Published in 21st International Conference on Image Analysis and Processing (ICIAP 2021 oral):
 ```
-TBD
+@InProceedings{10.1007/978-3-031-06430-2_4,
+  author = {Raivio, Leevi and Rahtu, Esa},
+  title = {Online panoptic 3D reconstruction as a Linear Assignment Problem},  
+  booktitle = {21st International Conference on Image Analysis and Processing},
+  year = {2022},
+  publisher = {Springer International Publishing},
+  pages = {39--50},
+  isbn = {978-3-031-06430-2},
+  doi = {10.1007/978-3-031-06430-2_4},
+  url = {https://tutvision.github.io/Online-Panoptic-3D/}
+}
+
+
 ```
