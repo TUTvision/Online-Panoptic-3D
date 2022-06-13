@@ -39,7 +39,7 @@ Panoptic segmentation model:
 }
 ```
 
-Published in 21st International Conference on Image Analysis and Processing (ICIAP 2021 oral):
+[Published in 21st International Conference on Image Analysis and Processing (ICIAP 2021)](https://link.springer.com/chapter/10.1007/978-3-031-06430-2_4):
 ```
 @InProceedings{10.1007/978-3-031-06430-2_4,
   author = {Raivio, Leevi and Rahtu, Esa},
